@@ -58,5 +58,8 @@ export default class PhysicsEngine {
     } else {
       player.isOnGround = false;
     }
+
+    //  limita o movimento do player ao mundo de 3000px
+    player.pos.x = p.constrain(player.pos.x, 0, 3000);
   }
 }
