@@ -1,26 +1,35 @@
+// src/sketch.ts
 import p5 from "p5";
-import Player from "../classes/Player";
+import Player from "../classes/Player/Player";
+import Controller from "../classes/Player/Controller";
+import PhysicsEngine from "../core/PhysicsEngine";
+import RenderSystem from "../core/RenderSystem";
 
 let player: Player;
+let controller: Controller;
+let physics: PhysicsEngine;
+let renderer: RenderSystem;
 
 const sketch = (p: p5) => {
   p.setup = () => {
     p.createCanvas(1280, 720);
-    player = new Player(p.width / 2, p.height / 2, p);
+    player = new Player(p, p.width / 2, p.height / 2);
+    controller = new Controller();
+    physics = new PhysicsEngine();
+    renderer = new RenderSystem();
   };
 
   p.draw = () => {
-    p.background(20);
-    player.update();
-    player.display();
+    physics.applyPhysics(player, controller);
+    renderer.draw(player);
   };
 
-p.keyPressed = () => {
-  player.handleKeyPressed(p.key.toLowerCase(), p.keyCode);
-};
+  p.keyPressed = () => {
+    controller.handleKeyPressed(p.key.toLowerCase(), p.keyCode);
+  };
 
   p.keyReleased = () => {
-    player.handleKeyReleased(p.key.toLowerCase(), p.keyCode);
+    controller.handleKeyReleased(p.key.toLowerCase(), p.keyCode);
   };
 };
 
