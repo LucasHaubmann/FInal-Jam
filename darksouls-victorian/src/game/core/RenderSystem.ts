@@ -1,36 +1,39 @@
+// src/game/core/RenderSystem.ts
 import Player from "../classes/Player/Player";
+import type { IPlatform } from "../classes/Plataform/IPlataform";
+import type p5 from "p5";
 
 export default class RenderSystem {
-  private worldWidth = 3000; // tamanho total do mundo
+  private worldWidth = 3000;
 
-  draw(player: Player) {
-    const p = player.p;
-
+  draw(p: p5, player: Player, platforms: IPlatform[]): void {
     p.background(20);
 
     p.push();
 
-    // Cálculo da posição da câmera
+    // Câmera
     let camX = player.pos.x - p.width / 2;
-
-    // Limites da câmera
     camX = p.constrain(camX, 0, this.worldWidth - p.width);
-
-    // Move o mundo ao redor do player
     p.translate(-camX, 0);
+
+    // Desenha plataformas
+    platforms.forEach(platform => {
+      p.fill(100, 100, 255);
+      p.rect(platform.pos.x, platform.pos.y, platform.width, platform.height);
+    });
 
     // Player
     p.fill(255);
     p.ellipse(player.pos.x, player.pos.y, 40, 40);
 
-    // Chão (longo como o mundo)
+    // Chão longo
     p.fill(100);
     p.rect(0, 680, this.worldWidth, 200);
 
-    // Obstáculo de exemplo
-    p.fill(200, 0, 0);
-    p.rect(2000, 600, 100, 80); // só será visível quando a câmera chegar lá
 
     p.pop();
+
+    // Debug info
+    player.debugInfo(p, player.stamina);
   }
 }

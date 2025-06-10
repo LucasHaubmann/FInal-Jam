@@ -1,6 +1,9 @@
+// src/core/PhysicsEngine.ts
 import Player from "../classes/Player/Player";
 import Controller from "../classes/Player/Controller";
 import type { PlayerState } from "../classes/Player/Types";
+import PlataformsController from "../classes/Plataform/PlataformsController";
+import type { IPlatform } from "../classes/Plataform/IPlataform";
 
 const defaultState: PlayerState = {
   maxSpeed: 6,
@@ -19,7 +22,7 @@ export default class PhysicsEngine {
     this.state = state;
   }
 
-  applyPhysics(player: Player, input: Controller) {
+  applyPhysics(player: Player, input: Controller, platforms: PlataformsController) {
     const { gravity, jumpStrength, moveForce, runMultiplier, maxSpeed, friction, groundY } = this.state;
     const p = player.p;
 
@@ -45,21 +48,87 @@ export default class PhysicsEngine {
       if (Math.abs(player.vel.x) < 0.1) player.vel.x = 0;
     }
 
-    // aplicar vetores
-    player.vel.add(player.acc);
-    player.vel.x = p.constrain(player.vel.x, -maxSpeed * (running ? runMultiplier : 1), maxSpeed * (running ? runMultiplier : 1));
-    player.pos.add(player.vel);
+player.vel.add(player.acc);
+player.pos.add(player.vel);
+
+// Verificação de colisão com plataformas
+const platformsList: IPlatform[] = platforms.getPlatforms();
+player.isOnGround = false;
+
+const playerRadius = 20;
+let collided = false;
+
+for (const platform of platformsList) {
+  const isAboveAndFalling =
+    player.pos.y + playerRadius <= platform.pos.y &&
+    player.pos.y + player.vel.y + playerRadius >= platform.pos.y &&
+    player.pos.x + playerRadius > platform.pos.x &&
+    player.pos.x - playerRadius < platform.pos.x + platform.width;
+
+  if (isAboveAndFalling) {
+    player.pos.y = platform.pos.y - playerRadius;
+    player.vel.y = 0;
+    player.isOnGround = true;
+    collided = true;
+    break;
+  }
+}
+
+// Corrigir flutuação: verifica se está parado em cima da plataforma
+if (!collided) {
+  for (const platform of platformsList) {
+    const isStandingOn =
+      Math.abs(player.pos.y + playerRadius - platform.pos.y) < 1 &&
+      player.pos.x + playerRadius > platform.pos.x &&
+      player.pos.x - playerRadius < platform.pos.x + platform.width;
+
+    if (isStandingOn) {
+      player.pos.y = platform.pos.y - playerRadius;
+      player.vel.y = 0;
+      player.isOnGround = true;
+      collided = true;
+      break;
+    }
+  }
+}
+
+    // Verificação extra para manter o player fixo mesmo parado
+    if (!collided) {
+      for (const platform of platforms.getPlatforms()) {
+        const isStandingOn =
+          Math.abs(player.pos.y + 40 - platform.pos.y) < 1 &&
+          player.pos.x + 20 > platform.pos.x &&
+          player.pos.x - 20 < platform.pos.x + platform.width;
+
+        if (isStandingOn) {
+          player.pos.y = platform.pos.y - 40;
+          player.vel.y = 0;
+          player.isOnGround = true;
+          collided = true;
+          break;
+        }
+      }
+    }
+
+    if (!collided) {
+      if (player.pos.y >= groundY) {
+        player.pos.y = groundY;
+        player.vel.y = 0;
+        player.isOnGround = true;
+      } else {
+        player.isOnGround = false;
+      }
+    }
 
     // chão
     if (player.pos.y >= groundY) {
       player.pos.y = groundY;
       player.vel.y = 0;
       player.isOnGround = true;
-    } else {
-      player.isOnGround = false;
     }
 
-    //  limita o movimento do player ao mundo de 3000px
+    // limite lateral
     player.pos.x = p.constrain(player.pos.x, 0, 3000);
+    player.vel.x = p.constrain(player.vel.x, -maxSpeed * (running ? runMultiplier : 1), maxSpeed * (running ? runMultiplier : 1));
   }
 }
