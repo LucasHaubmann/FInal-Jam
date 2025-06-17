@@ -1,29 +1,20 @@
 import p5 from "p5";
-import { Player } from "../classes/Player/Player";
-import { PlayerConfig } from "../classes/Player/PlayerConfig";
+import { GameLoop } from "./GameLoop";
 
-let player: Player;
+let gameLoop: GameLoop;
 
 export const sketch = (p: p5) => {
   p.setup = () => {
     p.createCanvas(800, 400);
-    player = new Player(100, PlayerConfig.groundY);
+    gameLoop = new GameLoop(p);
   };
 
   p.draw = () => {
-    p.background(0);
-
-    player.update();
-
-    // Render do player (feito aqui, já que não há mais um PlayerRenderer)
-    p.fill(255);
-    p.rect(player.x, player.y, PlayerConfig.width, PlayerConfig.height);
-
+    gameLoop.update();
+    gameLoop.render();
   };
 
   p.keyPressed = () => {
-    if (p.key === ' ') {
-      player.jump();
-    }
+    gameLoop.handleKey(p.key);
   };
 };
