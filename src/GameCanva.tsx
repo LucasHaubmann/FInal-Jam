@@ -7,10 +7,22 @@ const GameCanvas: React.FC = () => {
 
   useEffect(() => {
     const p5Instance = new p5(sketch, sketchRef.current!);
-    return () => p5Instance.remove(); // limpa o canvas ao desmontar
+    return () => p5Instance.remove();
   }, []);
 
-  return <div ref={sketchRef} />;
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',      // altura total da tela
+        backgroundColor: '#121212', // cor de fundo mais elegante
+      }}
+    >
+      <div ref={sketchRef} />
+    </div>
+  );
 };
 
 export default GameCanvas;

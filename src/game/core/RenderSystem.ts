@@ -16,21 +16,21 @@ export class RenderSystem {
 
   render() {
     const { p, camera, player } = this;
+    const camX = camera.getOffset();
 
     p.background(30);
 
-    const camX = camera.getOffset();
-
     // Chão
     p.fill(60);
-    p.rect(-camX, PlayerConfig.groundY + PlayerConfig.height, p.width * 3, 20);
+    p.rect(0 - camX, PlayerConfig.groundY + PlayerConfig.height, p.width * 4, 20);
 
-    // Player (fixo na tela)
+    // Player (agora posicionado em relação à câmera)
     p.fill(255, 100, 100);
-    p.rect(player.x, player.y, PlayerConfig.width, PlayerConfig.height);
+    p.rect(player.x - camX, player.y, PlayerConfig.width, PlayerConfig.height);
 
     // Obstáculo de exemplo
     p.fill(255);
-    p.rect(600 - camX, PlayerConfig.groundY, 30, 40);
+    p.rect(800 - camX, PlayerConfig.groundY, 40, 40);
   }
+
 }

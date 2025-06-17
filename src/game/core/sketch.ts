@@ -5,7 +5,7 @@ let gameLoop: GameLoop;
 
 export const sketch = (p: p5) => {
   p.setup = () => {
-    p.createCanvas(800, 400);
+    p.createCanvas(1280, 720); // Novo tamanho
     gameLoop = new GameLoop(p);
   };
 
