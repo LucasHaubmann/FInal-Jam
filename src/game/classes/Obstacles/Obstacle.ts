@@ -23,4 +23,21 @@ export abstract class Obstacle {
       playerY + playerH > this.y
     );
   }
+
+  isLethal(): boolean {
+  return false;
+}
+
+checkVerticalCollision?(
+  playerX: number,
+  playerY: number,
+  playerW: number,
+  playerH: number,
+  vy: number
+): number | null {
+  return null;
+}
+  getTopYAt?(x: number): number | null {
+    return null;
+  }
 }

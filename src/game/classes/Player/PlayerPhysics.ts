@@ -6,9 +6,11 @@ export class PlayerPhysics {
   state: PlayerState = PlayerState.Idle;
 
   applyGravity(y: number): number {
-    this.vy += PlayerConfig.gravity;
-    return y + this.vy;
-  }
+  if (this.state === PlayerState.Idle) return y;
+  this.vy += PlayerConfig.gravity;
+  return y + this.vy;
+}
+
 
   jump(currentState: PlayerState): number {
     if (currentState === PlayerState.Idle) {
@@ -18,12 +20,19 @@ export class PlayerPhysics {
     return this.vy;
   }
 
-  updateState(y: number): void {
-    if (y >= PlayerConfig.groundY) {
-      this.state = PlayerState.Idle;
-      this.vy = 0;
-    } else if (this.vy > 0) {
-      this.state = PlayerState.Falling;
+ updateState(y: number): void {
+  if (y >= PlayerConfig.groundY || this.vy === 0) {
+    this.state = PlayerState.Idle;
+  } else if (this.vy > 0) {
+    this.state = PlayerState.Falling;
     }
   }
+
+setFallingIfNoGround(isGrounded: boolean) {
+  if (!isGrounded && this.state === PlayerState.Idle) {
+    this.state = PlayerState.Falling;
+  }
+}
+
+
 }

@@ -4,6 +4,7 @@ import { Camera } from "./Camera";
 import { RenderSystem } from "./RenderSystem";
 import { PlayerConfig } from "../classes/Player/PlayerConfig";
 import { World } from "./World";
+import { resolvePlayerPlatformCollision } from "./CollisionSystem";
 
 export class GameLoop {
   player: Player;
@@ -19,8 +20,25 @@ export class GameLoop {
   }
 
   update() {
-    this.player.update();
-    this.camera.follow(this.player.x); // agora segue o player
+    this.player.update(this.world.obstacles.obstacles);
+
+    // Colisão com plataformas
+    resolvePlayerPlatformCollision(this.player, this.world.obstacles.obstacles);
+
+    // Colisão com obstáculos letais
+    const { x, y } = this.player;
+    const { width, height } = PlayerConfig;
+
+    if (
+      this.world.obstacles.obstacles.some(
+        obs => obs.isLethal?.() && obs.isColliding(x, y, width, height)
+      )
+    ) {
+      console.log("💀 Morreu!");
+      // futuro: reiniciar fase ou aplicar efeito visual
+    }
+
+    this.camera.follow(this.player.x);
     this.world.update(this.player);
   }
 
