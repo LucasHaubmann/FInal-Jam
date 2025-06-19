@@ -2,7 +2,7 @@ import p5 from "p5";
 import { Player } from "../classes/Player/Player";
 import { PlayerConfig } from "../classes/Player/PlayerConfig";
 import { ObstacleManager } from "../classes/Obstacles/ObstacleManager";
-import { createMap1 } from "../classes/Maps/Map1";
+import { map1 } from "../classes/Maps/Map1";
 
 export class World {
   minX: number;
@@ -12,7 +12,7 @@ export class World {
   constructor(minX: number, maxX: number) {
     this.minX = minX;
     this.maxX = maxX;
-    this.obstacles = new ObstacleManager(createMap1());
+    this.obstacles = new ObstacleManager();
   }
 
   update(player: Player) {

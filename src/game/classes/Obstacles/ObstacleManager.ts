@@ -1,11 +1,14 @@
+// obstacles/ObstacleManager.ts
 import p5 from "p5";
 import { Obstacle } from "./Obstacle";
+import { MapManager } from "../Maps/MapManager";
 
 export class ObstacleManager {
   obstacles: Obstacle[];
 
-  constructor(obstacles: Obstacle[]) {
-    this.obstacles = obstacles;
+  constructor() {
+    const mapManager = new MapManager();
+    this.obstacles = mapManager.getObstacles();
   }
 
   update(): void {
