@@ -13,14 +13,23 @@ const GameCanvas: React.FC = () => {
   return (
     <div
       style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',      // altura total da tela
-        backgroundColor: '#121212', // cor de fundo mais elegante
+        backgroundColor: '#121212',
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
       }}
     >
-      <div ref={sketchRef} />
+      <div
+        ref={sketchRef}
+        style={{
+          position: 'absolute',
+          top: '45%',
+          left: '50%',
+          transform: 'translate(-50%, -145%)',
+          width: '1280px',
+          height: '720px',
+        }}
+      />
     </div>
   );
 };

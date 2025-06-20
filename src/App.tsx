@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import GameCanvas from './GameCanva';
+import RegisterMenu from './game/components/RegisterMenu';
 
 function App() {
-  const [started, setStarted] = useState(true); // true por enquanto, até termos menu
+  const [playerName, setPlayerName] = useState<string | null>(null);
+
+  const handleRegister = (name: string) => {
+    setPlayerName(name);
+
+  };
 
   return (
     <div>
-      {started ? (
+      {playerName ? (
         <GameCanvas />
       ) : (
-        <div style={{ textAlign: 'center', paddingTop: '100px' }}>
-          <h1>Geometry Dash Clone</h1>
-          <button onClick={() => setStarted(true)}>Iniciar</button>
-        </div>
+        <RegisterMenu onContinue={handleRegister} />
       )}
     </div>
   );

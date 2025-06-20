@@ -18,9 +18,14 @@ export class GameLoop {
   private camera: Camera;
   private renderSystem: RenderSystem;
   private obstacleManager: ObstacleManager;
+  private p: p5;
 
   constructor(p: p5) {
+    this.p = p;
     this.player = new Player(0, 500);
+    const speed = PlayerConfig.speedX * (this.p.deltaTime / 16.67);
+    this.player.x += speed;
+    this.player.physics.vx = speed;
     this.world = new World(0, 1280 * 2);
     this.camera = new Camera(1280, this.world.maxX);
     this.renderSystem = new RenderSystem(p, this.camera, this.player);
@@ -71,7 +76,6 @@ for (const obs of this.obstacleManager.obstacles) {
 
   // 🏁 Verifica se chegou ao fim do mapa (ganhou)
   if (this.player.x + PlayerConfig.width >= this.world.maxX) {
-    console.log("🎉 Vitória! Reiniciando mapa...");
     this.player.x = PlayerLifeSystem.initialX;
     this.player.y = PlayerLifeSystem.initialY;
     this.player.physics.vx = 0;

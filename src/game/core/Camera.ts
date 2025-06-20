@@ -7,17 +7,20 @@ export class Camera {
   constructor(viewportWidth: number, maxWorldX: number) {
     this.viewportWidth = viewportWidth;
     this.maxWorldX = maxWorldX;
-    this.offsetX = viewportWidth * 0.4;
+    this.offsetX = viewportWidth / 2; // em vez de viewportWidth * 0.4
   }
 
   follow(playerX: number) {
-    const targetX = playerX - this.offsetX;
-
-    // Limita para que a borda direita da tela nunca ultrapasse o fim do mundo
+    const leftLimit = this.offsetX;
     const maxCameraX = this.maxWorldX - this.viewportWidth;
-    this.x = Math.min(targetX, maxCameraX);
-    this.x = Math.max(this.x, 0);
+
+    if (playerX <= leftLimit) {
+      this.x = 0;
+    } else {
+      this.x = Math.min(playerX - this.offsetX, maxCameraX);
+    }
   }
+
 
   getOffset(): number {
     return this.x;
@@ -26,4 +29,5 @@ export class Camera {
   reset() {
     this.x = 0;
   }
+  
 }
