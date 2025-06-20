@@ -19,9 +19,13 @@ export class GameLoop {
   private renderSystem: RenderSystem;
   private obstacleManager: ObstacleManager;
   private p: p5;
+  private onVictory: () => void;
+  private isPaused: boolean = false;
 
-  constructor(p: p5) {
+
+  constructor(p: p5, onVictory: () => void) {
     this.p = p;
+    this.onVictory = onVictory; // ✅ armazena função corretamente
     this.player = new Player(0, 500);
     const speed = PlayerConfig.speedX * (this.p.deltaTime / 16.67);
     this.player.x += speed;
@@ -33,7 +37,16 @@ export class GameLoop {
     PlayerLifeSystem.setInitialPosition(this.player.x, this.player.y);
   }
 
+  pause() {
+  this.isPaused = true;
+}
+
+  resume() {
+    this.isPaused = false;
+  }
+
 update(): void {
+  if (this.isPaused) return;
   // Atualiza física
   this.player.update(this.obstacleManager.obstacles);
 
@@ -75,13 +88,10 @@ for (const obs of this.obstacleManager.obstacles) {
   this.world.update(this.player);
 
   // 🏁 Verifica se chegou ao fim do mapa (ganhou)
-  if (this.player.x + PlayerConfig.width >= this.world.maxX) {
-    this.player.x = PlayerLifeSystem.initialX;
-    this.player.y = PlayerLifeSystem.initialY;
-    this.player.physics.vx = 0;
-    this.player.physics.vy = 0;
-    this.player.physics.state = PlayerState.Idle;
-  }
+    if (this.player.x + PlayerConfig.width >= this.world.maxX) {
+      this.onVictory(); // Chama o modal
+      return; // Impede que o jogo continue atualizando
+    }
 
   PlayerLifeSystem.handleDeath(this.player);
 }

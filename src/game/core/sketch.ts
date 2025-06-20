@@ -1,13 +1,14 @@
 import p5 from "p5";
 import { GameLoop } from "./GameLoop";
 
-let gameLoop: GameLoop;
+export const sketch = (p: p5, onVictory: () => void) => {
+  let gameLoop: GameLoop;
 
-export const sketch = (p: p5) => {
+  console.log("Sketch carregado!");
+
   p.setup = () => {
-    p.createCanvas(1280, 720); // Novo tamanho
-    p.frameRate(60); // <- Limita para 60 FPS
-    gameLoop = new GameLoop(p);
+    p.createCanvas(1280, 720);
+    gameLoop = new GameLoop(p, onVictory);
   };
 
   p.draw = () => {

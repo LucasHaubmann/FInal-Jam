@@ -14,7 +14,7 @@ export const map1 = [
   "...........rbbbbbb.......................bbbbbbbbbb...b.........",
   "..........rbbbbbbb.......................bbbbbbbbbb...b.........",
   ".........rbbbbbbbb.......................bbbbbbbbbb.............",
-  "........rbbbbbbbbbkkk..kkk.....kkkk..kkkkkbbbbbbbbb.......k...k..",
+  "........rbbbbbbbbbkkk..kkk.....kkkk..kkkkkbbbbbbbbb..............",
   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 ];
