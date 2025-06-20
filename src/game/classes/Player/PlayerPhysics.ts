@@ -3,6 +3,7 @@ import { PlayerState } from "./PlayerState";
 
 export class PlayerPhysics {
   vy = 0;
+  vx: number = 0;
   state: PlayerState = PlayerState.Idle;
 
   applyGravity(y: number): number {

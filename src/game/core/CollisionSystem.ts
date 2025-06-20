@@ -1,5 +1,6 @@
 import { Player } from "../classes/Player/Player";
 import { Obstacle } from "../classes/Obstacles/Obstacle";
+import { ObstacleBlock } from "../classes/Obstacles/ObstacleBlock";
 import { PlayerConfig } from "../classes/Player/PlayerConfig";
 import { PlayerState } from "../classes/Player/PlayerState";
 
@@ -8,6 +9,7 @@ export function resolvePlayerPlatformCollision(player: Player, obstacles: Obstac
 
   for (const obs of obstacles) {
     if (typeof obs.checkVerticalCollision !== "function") continue;
+    if (obs instanceof ObstacleBlock) continue;
 
     const y = obs.checkVerticalCollision(
       player.x, player.y,

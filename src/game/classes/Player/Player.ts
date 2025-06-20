@@ -5,6 +5,9 @@ import { Obstacle } from "../Obstacles/Obstacle";
 import { isPlayerOnGround } from "../../core/CollisionSystem";
 
 export class Player {
+  render(p: import("p5"), camX: number) {
+    throw new Error("Method not implemented.");
+  }
   x: number;
   y: number;
   physics: PlayerPhysics;
@@ -17,7 +20,6 @@ export class Player {
   }
 
 update(obstacles: Obstacle[]) {
-  this.x += PlayerConfig.speedX;
   this.y = this.physics.applyGravity(this.y);
   this.physics.updateState(this.y);
 
