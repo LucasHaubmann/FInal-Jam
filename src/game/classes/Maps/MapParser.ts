@@ -1,6 +1,7 @@
 import { Obstacle } from "../Obstacles/Obstacle";
 import { ObstacleBlock } from "../Obstacles/ObstacleBlock";
 import { ObstacleRamp } from "../Obstacles/ObstacleRamp";
+import { ObstacleKill } from "../Obstacles/ObstacleKill"; // ✅ bloco letal
 
 const TILE_SIZE = 40;
 
@@ -13,10 +14,18 @@ export function parseTextMap(map: string[]): Obstacle[] {
       const x = col * TILE_SIZE;
       const y = row * TILE_SIZE;
 
-      if (char === 'b') {
-        obstacles.push(new ObstacleBlock(x, y, TILE_SIZE, TILE_SIZE));
-      } else if (char === 'r') {
-        obstacles.push(new ObstacleRamp(x, y, TILE_SIZE, TILE_SIZE));
+      switch (char) {
+        case 'b':
+          obstacles.push(new ObstacleBlock(x, y, TILE_SIZE, TILE_SIZE));
+          break;
+        case 'r':
+          obstacles.push(new ObstacleRamp(x, y, TILE_SIZE, TILE_SIZE));
+          break;
+        case 'k':
+          obstacles.push(new ObstacleKill(x, y, TILE_SIZE, TILE_SIZE));
+          break;
+        default:
+          break;
       }
     }
   }

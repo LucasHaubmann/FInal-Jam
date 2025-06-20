@@ -21,6 +21,9 @@ export class Player {
   }
 
 update(obstacles: Obstacle[]) {
+  if (this.physics.state === PlayerState.Death) return;
+
+
   this.y = this.physics.applyGravity(this.y);
   this.physics.updateState(this.y);
 
@@ -29,12 +32,14 @@ update(obstacles: Obstacle[]) {
     this.y = PlayerConfig.groundY;
     this.physics.vy = 0;
     this.grounded = true;
+
+    // 🔒 Garante que não sobrescreva o estado se não for Idle/Falling
     this.physics.state = PlayerState.Idle;
     return;
   }
 
-  // Verifica chão de obstáculos
   this.grounded = isPlayerOnGround(this, obstacles);
+
   if (!this.grounded && this.physics.state === PlayerState.Idle) {
     this.physics.state = PlayerState.Falling;
   }

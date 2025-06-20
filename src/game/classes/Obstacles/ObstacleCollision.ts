@@ -137,3 +137,16 @@ static checkTopCollision(
     player.physics.vy = vy;
   }
 }
+
+export function isRectColliding(
+  ax: number, ay: number, aw: number, ah: number,
+  bx: number, by: number, bw: number, bh: number
+): boolean {
+  return (
+    ax + aw > bx &&
+    ax < bx + bw &&
+    ay + ah > by &&
+    ay < by + bh
+  );
+}
+

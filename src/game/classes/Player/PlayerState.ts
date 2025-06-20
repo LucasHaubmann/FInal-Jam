@@ -1,5 +1,6 @@
 export enum PlayerState {
   Idle = "Idle",
   Jumping = "Jumping",
-  Falling = "Falling"
+  Falling = "Falling",
+  Death = "Death",
 }
