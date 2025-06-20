@@ -65,11 +65,19 @@ for (const obs of this.obstacleManager.obstacles) {
   }
 }
 
-
-
   // Atualiza câmera, mundo, etc.
   this.camera.follow(this.player.x);
   this.world.update(this.player);
+
+  // 🏁 Verifica se chegou ao fim do mapa (ganhou)
+  if (this.player.x + PlayerConfig.width >= this.world.maxX) {
+    console.log("🎉 Vitória! Reiniciando mapa...");
+    this.player.x = PlayerLifeSystem.initialX;
+    this.player.y = PlayerLifeSystem.initialY;
+    this.player.physics.vx = 0;
+    this.player.physics.vy = 0;
+    this.player.physics.state = PlayerState.Idle;
+  }
 
   PlayerLifeSystem.handleDeath(this.player);
 }
