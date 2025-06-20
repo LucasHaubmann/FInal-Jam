@@ -91,9 +91,9 @@ static checkTopCollision(
       const oy = block.y;
       const ow = block.width;
       const oh = block.height;
-
+      
       // Colisão lateral direita
-      if (vx >= 0) {
+      if (vx >= 0 && !player.isOnRamp) {
         const res = this.checkLeftCollision(px, py, pw, ph, vx, ox, oy, ow, oh);
         if (res !== null) {
           px = res;
@@ -102,7 +102,7 @@ static checkTopCollision(
       }
 
       // Colisão lateral esquerda
-      if (vx <= 0) {
+      if (vx <= 0 && !player.isOnRamp) {
         const res = this.checkRightCollision(px, py, pw, ph, vx, ox, oy, ow, oh);
         if (res !== null) {
           px = res;

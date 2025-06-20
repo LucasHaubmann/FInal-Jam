@@ -12,6 +12,7 @@ export class Player {
   y: number;
   physics: PlayerPhysics;
   grounded: boolean = false;
+  isOnRamp: boolean = false;
 
   constructor(x: number, y: number) {
     this.x = x;
