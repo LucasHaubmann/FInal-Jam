@@ -1,23 +1,29 @@
-import { useState } from 'react';
-import GameCanvas from './GameCanva';
-import RegisterMenu from './game/components/RegisterMenu';
+import { useState } from "react";
+import GameCanvas from "./GameCanva";
+import RegisterMenu from "./game/components/RegisterMenu";
+import MainMenu from "./game/components/MainMenu";
 
 function App() {
-  const [playerName, setPlayerName] = useState<string | null>(null);
+  const [stage, setStage] = useState<"register" | "main" | "game">("register");
+  const [playerName, setPlayerName] = useState("");
 
-  const handleRegister = (name: string) => {
+  const handleContinue = (name: string) => {
     setPlayerName(name);
+    setStage("main");
+  };
 
+  const handleStartGame = () => {
+    setStage("game");
   };
 
   return (
-    <div>
-      {playerName ? (
-        <GameCanvas />
-      ) : (
-        <RegisterMenu onContinue={handleRegister} />
+    <>
+      {stage === "register" && <RegisterMenu onContinue={handleContinue} />}
+      {stage === "main" && (
+        <MainMenu playerName={playerName} onStartGame={handleStartGame} />
       )}
-    </div>
+      {stage === "game" && <GameCanvas />}
+    </>
   );
 }
 
