@@ -2,6 +2,7 @@ import { Obstacle } from "../Obstacles/Obstacle";
 import { ObstacleBlock } from "../Obstacles/ObstacleBlock";
 import { ObstacleRamp } from "../Obstacles/ObstacleRamp";
 import { ObstacleKill } from "../Obstacles/ObstacleKill"; // ✅ bloco letal
+import { ObstacleFakeBlock } from "../Obstacles/ObstacleFakeBlock"; // ✅ 1. IMPORTA A NOVA CLASSE
 
 const TILE_SIZE = 40;
 
@@ -23,6 +24,9 @@ export function parseTextMap(map: string[]): Obstacle[] {
           break;
         case 'k':
           obstacles.push(new ObstacleKill(x, y, TILE_SIZE, TILE_SIZE));
+          break;
+        case 'f':
+          obstacles.push(new ObstacleFakeBlock(x, y, TILE_SIZE, TILE_SIZE));
           break;
         default:
           break;

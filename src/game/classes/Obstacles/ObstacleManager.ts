@@ -1,33 +1,41 @@
-// obstacles/ObstacleManager.ts
 import p5 from "p5";
 import { Obstacle } from "./Obstacle";
-// import { MapManager } from "../Maps/MapManager"; // ✅ REMOVIDO: Não precisa mais saber do MapManager
+import { ObstacleFakeBlock } from "./ObstacleFakeBlock"; // ✅ Importa a classe para verificação
 
 export class ObstacleManager {
   obstacles: Obstacle[];
 
   constructor() {
-    // ✅ O construtor agora é simples: apenas inicializa uma lista vazia.
     this.obstacles = [];
   }
   
-  // ✅ NOVO MÉTODO: Permite que o GameLoop "injete" os obstáculos do mapa correto.
   public loadObstacles(obstaclesToLoad: Obstacle[]): void {
     this.obstacles = obstaclesToLoad;
-    console.log(`[ObstacleManager] ${this.obstacles.length} obstáculos carregados e prontos para gerenciar.`);
+    console.log(`[ObstacleManager] ${this.obstacles.length} obstáculos carregados.`);
+    
+    
+    // ✅ CHAMA O RESET APÓS CARREGAR
+    this.resetAllBlockStates();
   }
 
-  update(): void {
-    // Futuro: lógica de spawn ou destruição
+  // ✅ NOVO MÉTODO PRIVADO
+  // Garante que todos os blocos que podem ter estado sejam reiniciados.
+  public resetAllBlockStates(): void {
+    for (const obs of this.obstacles) {
+      if (obs instanceof ObstacleFakeBlock) {
+        obs.reset();
+      }
+    }
   }
 
-  render(p: p5, camX: number): void {
+  // ... resto da classe (render, etc.) sem alterações ...
+  public render(p: p5, camX: number): void {
     for (const obs of this.obstacles) {
       obs.render(p, camX);
     }
   }
 
-  checkCollisions(px: number, py: number, pw: number, ph: number): boolean {
+  public checkCollisions(px: number, py: number, pw: number, ph: number): boolean {
     return this.obstacles.some(obs =>
       obs.isColliding(px, py, pw, ph)
     );

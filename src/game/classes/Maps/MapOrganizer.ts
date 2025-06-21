@@ -1,5 +1,6 @@
 import { map1 } from './Map1';
 import { map2 } from './Map2';
+import { map3 } from './Map3';
 // Quando você criar o Map3.ts, importe-o aqui também
 // import { map3 } from './Map3';
 
@@ -7,7 +8,7 @@ import { map2 } from './Map2';
 export const mapRegistry = {
   level1: map1,
   level2: map2,
-  // level3: map3, // E adicione aqui
+  level3: map3, // E adicione aqui
 };
 
 // Exportamos também um tipo para garantir que os IDs sejam válidos

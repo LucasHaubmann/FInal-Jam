@@ -8,7 +8,8 @@ export class PlayerLifeSystem {
   static initialX = 0;
   static initialY = 0;
 
-  static handleDeath(player: Player) {
+  // ✅ 1. A assinatura da função agora indica que ela retorna um booleano.
+  static handleDeath(player: Player): boolean {
     if (player.physics.state === PlayerState.Death) {
       // Reinicia posição
       player.x = PlayerLifeSystem.initialX;
@@ -20,7 +21,13 @@ export class PlayerLifeSystem {
 
       // Reinicia estado
       player.physics.state = PlayerState.Idle;
+      
+      // ✅ 2. Retorna 'true' para avisar que o jogador respawnou.
+      return true;
     }
+
+    // ✅ 3. Se o jogador não morreu, retorna 'false'.
+    return false;
   }
 
   static setInitialPosition(x: number, y: number) {

@@ -2,7 +2,6 @@ import p5 from "p5";
 import { Player } from "../classes/Player/Player";
 import { PlayerConfig } from "../classes/Player/PlayerConfig";
 import { ObstacleManager } from "../classes/Obstacles/ObstacleManager";
-import { map1 } from "../classes/Maps/Map1";
 
 export class World {
   minX: number;

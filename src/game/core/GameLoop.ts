@@ -4,6 +4,7 @@ import { World } from "./World";
 import { Camera } from "./Camera";
 import { RenderSystem } from "./RenderSystem";
 import { ObstacleManager } from "../classes/Obstacles/ObstacleManager";
+import { ObstacleFakeBlock } from "../classes/Obstacles/ObstacleFakeBlock";
 import { MapManager } from "../classes/Maps/MapManager"; // ✅ IMPORTAMOS O MAPMANAGER
 import type { LevelId } from "../classes/Maps/MapOrganizer";
 
@@ -42,13 +43,13 @@ export class GameLoop {
     this.onVictory = onVictory;
     this.socket = socket;
 
-    this.player = new Player(0, 500);
+    this.player = new Player(0, 650);
 
     const speed = PlayerConfig.speedX * (this.p.deltaTime / 16.67);
     this.player.x += speed;
     this.player.physics.vx = speed;
 
-    this.world = new World(0, 1280 * 2);
+    this.world = new World(0, 5000);
     this.camera = new Camera(1280, this.world.maxX);
     this.renderSystem = new RenderSystem(p, this.camera, this.player);
 
@@ -109,57 +110,72 @@ export class GameLoop {
     this.isPaused = false;
   }
 
-  update(): void {
-    if (this.isPaused) return;
+// DENTRO DA CLASSE GameLoop
 
-    this.player.update(this.obstacleManager.obstacles);
+// DENTRO DA CLASSE GameLoop
 
-    const prevX = this.player.x;
-    const speed = PlayerConfig.speedX;
-    this.player.x += speed;
-    this.player.physics.vx = this.player.x - prevX;
+update(): void {
+  if (this.isPaused) return;
 
-    resolvePlayerPlatformCollision(this.player, this.obstacleManager.obstacles);
+  // ... toda a sua lógica de update (movimento, colisão, etc.) continua aqui ...
+  // ...
+  this.player.update(this.obstacleManager.obstacles);
 
-    ObstacleCollision.resolvePlayerBlockCollisions(
-      this.player,
-      this.obstacleManager.obstacles.filter(obs => obs instanceof ObstacleBlock) as ObstacleBlock[]
-    );
+  const prevX = this.player.x;
+  const speed = PlayerConfig.speedX;
+  this.player.x += speed;
+  this.player.physics.vx = this.player.x - prevX;
 
-    for (const obs of this.obstacleManager.obstacles) {
-      if (
-        obs.isLethal?.() &&
-        isRectColliding(
-          this.player.x,
-          this.player.y,
-          PlayerConfig.width,
-          PlayerConfig.height,
-          obs.x,
-          obs.y,
-          obs.width,
-          obs.height
-        )
-      ) {
-        this.player.physics.state = PlayerState.Death;
+  resolvePlayerPlatformCollision(this.player, this.obstacleManager.obstacles);
+
+  ObstacleCollision.resolvePlayerBlockCollisions(
+    this.player,
+    this.obstacleManager.obstacles.filter(obs => obs instanceof ObstacleBlock) as ObstacleBlock[]
+  );
+
+  for (const obs of this.obstacleManager.obstacles) {
+    if (
+      obs.isLethal?.() &&
+      isRectColliding(
+        this.player.x, this.player.y,
+        PlayerConfig.width, PlayerConfig.height,
+        obs.x, obs.y,
+        obs.width, obs.height
+      )
+    ) {
+      this.player.physics.state = PlayerState.Death;
+    }
+
+    if (obs instanceof ObstacleFakeBlock) {
+      if (obs.isColliding(this.player.x, this.player.y, PlayerConfig.width, PlayerConfig.height)) {
+        obs.trigger();
       }
     }
-
-    this.camera.follow(this.player.x);
-    this.world.update(this.player);
-
-    this.socket.emit("playerUpdate", {
-      id: this.socket.id,
-      x: this.player.x,
-      y: this.player.y,
-    });
-
-    if (this.player.x + PlayerConfig.width >= this.world.maxX) {
-      this.onVictory();
-      return;
-    }
-
-    PlayerLifeSystem.handleDeath(this.player);
   }
+
+  this.camera.follow(this.player.x);
+  this.world.update(this.player);
+
+  this.socket.emit("playerUpdate", {
+    id: this.socket.id,
+    x: this.player.x,
+    y: this.player.y,
+  });
+
+  if (this.player.x + PlayerConfig.width >= this.world.maxX) {
+    this.onVictory();
+    return;
+  }
+
+  // ✅ LÓGICA DE RESPAWN E RESET
+  // 1. Chamamos a função e guardamos o "aviso" (true ou false)
+  const playerRespawned = PlayerLifeSystem.handleDeath(this.player);
+
+  // 2. Se o aviso for 'true', o GameLoop comanda o reset dos blocos.
+  if (playerRespawned) {
+    this.obstacleManager.resetAllBlockStates();
+  }
+}
 
   render(): void {
     this.renderSystem.render();
