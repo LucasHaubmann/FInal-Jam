@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 
-// As props que este componente vai receber do App.tsx
 type LobbyMenuProps = {
   onJoinRoom: (roomId: string) => void;
   onCreateRoom: () => void;
@@ -10,43 +9,66 @@ type LobbyMenuProps = {
 const LobbyMenu: React.FC<LobbyMenuProps> = ({ onJoinRoom, onCreateRoom, onBack }) => {
   const [roomIdInput, setRoomIdInput] = useState('');
 
-  // Estilos (podemos refinar depois)
   const styles: { [key: string]: React.CSSProperties } = {
-    container: { height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'white' },
-    title: { fontFamily: "'Orbitron', sans-serif", fontSize: '3rem', color: '#ff00ff', textShadow: "0 0 10px #ff00ff" },
-    inputGroup: { display: 'flex', gap: '10px', margin: '2rem 0' },
-    input: { padding: '10px', width: '200px', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid #ff00ff', color: 'white' },
-    button: { padding: '10px 20px', cursor: 'pointer', border: '1px solid', color: 'white' },
-    joinButton: { borderColor: '#ff00ff', backgroundColor: 'rgba(255,0,255,0.2)' },
-    createButton: { borderColor: '#00f6ff', backgroundColor: 'rgba(0,246,255,0.2)', width: '100%' },
-    backButton: { background: 'none', border: 'none', color: '#506080', marginTop: '2rem', cursor: 'pointer' },
+    container: { height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "20px", color: 'white' },
+    title: { fontFamily: "'Orbitron', sans-serif", fontSize: "3rem", color: "#00f6ff", textShadow: "0 0 10px #00f6ff", marginBottom: "3rem" },
+    inputGroup: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: "1.5rem", width: '400px' },
+    input: { fontFamily: "'Chakra Petch', sans-serif", fontSize: '1.2rem', padding: '15px', width: '100%', backgroundColor: 'transparent', border: '2px solid #304060', color: '#a0a0c0', textAlign: 'center', outline: 'none', transition: 'border-color 0.3s' },
+    button: { fontFamily: "'Chakra Petch', sans-serif", fontSize: "1.2rem", fontWeight: "bold", padding: '15px', cursor: "pointer", width: '100%', transition: 'all 0.2s ease', border: '2px solid' },
+    joinButton: { color: '#ff00ff', borderColor: '#ff00ff', backgroundColor: 'transparent' },
+    createButton: { color: '#00f6ff', borderColor: '#00f6ff', backgroundColor: 'transparent' },
+    backButton: { fontFamily: "'Chakra Petch', sans-serif", marginTop: "3rem", background: "none", border: "none", color: "#506080", fontSize: "1rem", cursor: "pointer", textTransform: "uppercase" },
   };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.style.borderColor = '#ff00ff';
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.style.borderColor = '#304060';
+  
+  // ✅ Cores para o efeito de hover
+  const joinColor = '#ff00ff';
+  const createColor = '#00f6ff';
+  const darkBackgroundColor = '#0a0a14';
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>Multiplayer Matrix</h1>
+      <h1 style={styles.title}>Multiplayer Node</h1>
       <div style={styles.inputGroup}>
-        <input
-          type="text"
-          placeholder="Enter Room ID"
-          value={roomIdInput}
-          onChange={(e) => setRoomIdInput(e.target.value.toUpperCase())}
-          style={styles.input}
-        />
-        <button 
+        <input type="text" placeholder="ROOM ID" value={roomIdInput} onChange={(e) => setRoomIdInput(e.target.value.toUpperCase())} style={styles.input} onFocus={handleFocus} onBlur={handleBlur} />
+        
+        {/* ✅ Botão de Entrar com efeito de hover */}
+        <button
           onClick={() => roomIdInput && onJoinRoom(roomIdInput)}
           style={{...styles.button, ...styles.joinButton}}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = joinColor;
+            e.currentTarget.style.color = darkBackgroundColor;
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = joinColor;
+          }}
         >
           Join Room
         </button>
-      </div>
-      <p>OR</p>
-      <div style={{width: '320px', marginTop: '1rem'}}>
-        <button onClick={onCreateRoom} style={{...styles.button, ...styles.createButton}}>
-          Create New Room
+
+        <p style={{color: '#506080', margin: '0'}}>OR</p>
+
+        {/* ✅ Botão de Criar com efeito de hover */}
+        <button
+          onClick={onCreateRoom}
+          style={{...styles.button, ...styles.createButton}}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = createColor;
+            e.currentTarget.style.color = darkBackgroundColor;
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = createColor;
+          }}
+        >
+          Create Private Room
         </button>
       </div>
-      <button onClick={onBack} style={styles.backButton}>[ Back to Main Menu ]</button>
+      <button onClick={onBack} style={styles.backButton}>[ Disconnect ]</button>
     </div>
   );
 };

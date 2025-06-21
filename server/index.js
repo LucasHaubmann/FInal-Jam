@@ -13,83 +13,113 @@ const io = new Server(server, {
   }
 });
 
-const players = {};
-const rooms = {}; // ✅ Objeto para guardar o estado de todas as salas
+const rooms = {};
 
-// Função para gerar um ID de sala aleatório e único
+// ✅ Lista de cores para atribuir aos jogadores
+const playerColors = ['#00A3FF', '#FFA500', '#00C853', '#9400D3']; // Azul, Laranja, Verde, Roxo
+
 const generateRoomId = () => {
   let roomId;
   do {
     roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-  } while (rooms[roomId]); // Garante que o ID não exista
+  } while (rooms[roomId]);
   return roomId;
 };
 
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
   
-  // Lógica para CRIAR uma sala
+  // ✅ Ouve o evento onde o cliente envia seu nome
+  socket.on('registerPlayer', (playerName) => {
+    // Guarda os dados customizados diretamente no objeto do socket
+    socket.data.playerName = playerName;
+    console.log(`Player ${socket.id} registered as: ${playerName}`);
+  });
+  
   socket.on('createRoom', () => {
     const roomId = generateRoomId();
     socket.join(roomId);
+
+    // ✅ O primeiro jogador (host) pega a primeira cor
+    socket.data.color = playerColors[0];
+    
+    // ✅ A sala agora guarda objetos de jogador, não apenas IDs
     rooms[roomId] = {
-      players: [socket.id], // Adiciona o criador da sala
-      // podemos adicionar o estado do jogo aqui depois, ex: "waiting", "playing"
+      players: [{
+        id: socket.id,
+        name: socket.data.playerName || `Player 1`,
+        color: socket.data.color
+      }]
     };
-    // Avisa ao criador da sala qual é o ID
-    socket.emit('roomCreated', roomId);
+    
+    // Avisa ao criador da sala o ID e a lista inicial de jogadores
+    socket.emit('roomCreated', { roomId, players: rooms[roomId].players });
     console.log(`Room ${roomId} created by ${socket.id}`);
   });
   
-  // Lógica para ENTRAR em uma sala
   socket.on('joinRoom', (roomId) => {
     const room = rooms[roomId];
     if (room) {
-      if (room.players.length < 4) { // ✅ Checa o limite de jogadores
+      if (room.players.length < 4) {
         socket.join(roomId);
-        room.players.push(socket.id);
-        // Avisa ao jogador que ele entrou com sucesso
-        socket.emit('joinedRoom', roomId);
-        // Avisa a TODOS os outros na sala que um novo jogador entrou
-        socket.to(roomId).emit('playerJoined', socket.id);
-        console.log(`${socket.id} joined room ${roomId}. Players: ${room.players.length}`);
+        
+        // ✅ Atribui a próxima cor disponível da lista
+        socket.data.color = playerColors[room.players.length % playerColors.length];
+        
+        const newPlayer = {
+          id: socket.id,
+          name: socket.data.playerName || `Player ${room.players.length + 1}`,
+          color: socket.data.color
+        };
+
+        room.players.push(newPlayer);
+        
+        // Envia a lista completa de jogadores para quem acabou de entrar
+        socket.emit('joinedRoom', { roomId, players: room.players });
+        
+        // Envia os dados do NOVO jogador para os que JÁ ESTAVAM na sala
+        socket.to(roomId).emit('playerJoined', newPlayer);
+        console.log(`${socket.id} (${newPlayer.name}) joined room ${roomId}. Players: ${room.players.length}`);
       } else {
-        socket.emit('roomFull', roomId); // Avisa que a sala está cheia
+        socket.emit('roomFull', roomId);
       }
     } else {
-      socket.emit('roomNotFound', roomId); // Avisa que a sala não existe
+      socket.emit('roomNotFound', roomId);
     }
   });
 
-  // A lógica de `playerUpdate` precisa ser específica da sala agora
   socket.on("playerUpdate", (data) => {
-    // Encontra a sala do jogador e envia a atualização SÓ para essa sala
     const { roomId, ...playerData } = data;
     if (roomId && rooms[roomId]) {
-      socket.to(roomId).emit("playerUpdate", playerData);
+      // ✅ Inclui os dados mais recentes de nome e cor no broadcast
+      const fullPlayerData = {
+        ...playerData,
+        name: socket.data.playerName,
+        color: socket.data.color,
+      };
+      socket.to(roomId).emit("playerUpdate", fullPlayerData);
     }
   });
 
   socket.on("disconnect", () => {
     console.log(`User Disconnected: ${socket.id}`);
-    delete players[socket.id]; // Mantém sua lógica antiga se precisar
     
-    // ✅ Remove o jogador de qualquer sala em que ele esteja
     for (const roomId in rooms) {
       const room = rooms[roomId];
-      const playerIndex = room.players.indexOf(socket.id);
+      // ✅ Procura o jogador pelo ID no array de objetos
+      const playerIndex = room.players.findIndex(p => p.id === socket.id);
+      
       if (playerIndex !== -1) {
         room.players.splice(playerIndex, 1);
-        console.log(`${socket.id} left room ${roomId}. Players: ${room.players.length}`);
-        // Se a sala ficar vazia, podemos excluí-la
+        console.log(`${socket.id} left room ${roomId}. Players remaining: ${room.players.length}`);
+        
         if (room.players.length === 0) {
           delete rooms[roomId];
           console.log(`Room ${roomId} is empty and has been closed.`);
         } else {
-          // Avisa os outros jogadores que alguém saiu
           socket.to(roomId).emit("playerLeft", socket.id);
         }
-        break; // Sai do loop pois o jogador só pode estar em uma sala
+        break;
       }
     }
   });

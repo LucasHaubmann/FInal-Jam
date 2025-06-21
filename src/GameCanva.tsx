@@ -1,11 +1,11 @@
-import React, { useRef, useEffect } from "react";
-import p5 from "p5";
-import { sketch } from "./game/core/sketch";
-import { Socket } from "socket.io-client";
+import React, { useRef, useEffect } from 'react';
+import p5 from 'p5';
+import { sketch } from './game/core/sketch';
+import { Socket } from 'socket.io-client';
 
 type GameCanvasProps = {
   levelName: string;
-  roomId: string | null; // ✅ 1. Recebe a prop com o ID da sala
+  roomId: string | null;
   onExit: () => void;
   onVictory: () => void;
   socket: Socket;
@@ -16,42 +16,68 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, roomId, onExit, onVi
 
   useEffect(() => {
     if (sketchRef.current) {
-      sketchRef.current.innerHTML = "";
+      sketchRef.current.innerHTML = '';
     }
-
-    // ✅ 2. Passa o `roomId` para a função sketch
     const wrappedSketch = (p: p5) => sketch(p, onVictory, socket, levelName, roomId);
     const p5Instance = new p5(wrappedSketch, sketchRef.current!);
-
     return () => {
       p5Instance.remove();
     };
-    // ✅ 3. Adiciona roomId como dependência para recriar se necessário
-  }, [levelName, roomId]); 
+  }, [levelName, roomId]);
+
+  // ✅ Estilo do container principal que vai segurar TUDO
+  const mainContainerStyle: React.CSSProperties = {
+    position: 'relative', // Serve de âncora para os elementos internos
+    width: '100vw',
+    height: '100vh',
+    overflow: 'hidden',
+    backgroundColor: 'black',
+  };
+
+  // ✅ Estilo do botão de sair, que será a nossa camada de UI
+  const buttonStyle: React.CSSProperties = {
+    position: 'absolute', // Posicionado em relação ao mainContainer
+    top: '20px',
+    left: '20px',
+    zIndex: 10, // Garante que ele fique por cima
+    fontFamily: "'Chakra Petch', sans-serif",
+    fontSize: '1rem',
+    padding: '10px 20px',
+    cursor: 'pointer',
+    color: '#ff4b4b',
+    backgroundColor: 'rgba(25, 25, 35, 0.8)',
+    border: '2px solid #ff4b4b',
+    borderRadius: '5px',
+    textTransform: 'uppercase',
+    transition: 'all 0.3s ease',
+  };
 
   return (
-    <div
-      id="sketch-container"
-      ref={sketchRef}
-      style={{
-        position: "relative",
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
-        backgroundColor: "black",
-      }}
-    >
+    // ✅ Este é o container principal
+    <div style={mainContainerStyle}>
+      {/* ✅ Camada 1: O container do jogo. 
+        O p5.js vai desenhar o canvas aqui dentro e não vai mais interferir com o botão.
+      */}
+      <div id="sketch-container" ref={sketchRef} />
+
+      {/* ✅ Camada 2: A nossa UI (o botão).
+        Ele é irmão do container do sketch, não filho, evitando o conflito.
+      */}
       <button
         onClick={onExit}
-        style={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-          zIndex: 10,
-          padding: "10px 20px",
+        style={buttonStyle}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#ff4b4b';
+          e.currentTarget.style.color = '#0a0a14';
+          e.currentTarget.style.boxShadow = '0 0 15px rgba(255, 75, 75, 0.7)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(25, 25, 35, 0.8)';
+          e.currentTarget.style.color = '#ff4b4b';
+          e.currentTarget.style.boxShadow = 'none';
         }}
       >
-        Voltar
+        Sair
       </button>
     </div>
   );

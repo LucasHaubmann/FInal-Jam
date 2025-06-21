@@ -17,11 +17,13 @@ import { PlayerState } from "../classes/Player/PlayerState";
 import { isRectColliding } from "../classes/Obstacles/ObstacleCollision";
 import { Socket } from "socket.io-client";
 
-// Interface para representar dados de outros jogadores
+// ✅ Interface atualizada para incluir os novos dados de nome e cor
 interface OtherPlayer {
   id: string;
   x: number;
   y: number;
+  name: string;
+  color: string;
 }
 
 export class GameLoop {
@@ -37,7 +39,7 @@ export class GameLoop {
   private otherPlayers: { [id: string]: OtherPlayer } = {};
   private roomId: string | null; // ✅ Propriedade para o multiplayer
 
-  // ✅ Construtor atualizado para receber levelId e roomId
+  // ✅ Construtor final que recebe levelId e roomId
   constructor(p: p5, onVictory: () => void, socket: Socket, levelId: string, roomId: string | null) {
     this.p = p;
     this.onVictory = onVictory;
@@ -65,31 +67,42 @@ export class GameLoop {
     this.setupSocketListeners();
   }
 
+  // ✅ Listeners atualizados para a nova lógica de salas do servidor
   private setupSocketListeners(): void {
-    this.socket.on("currentPlayers", (playersData: { [id: string]: OtherPlayer }) => {
-      console.log("Recebendo jogadores atuais:", playersData);
-      for (const id in playersData) {
-        if (id !== this.socket.id) {
-          this.otherPlayers[id] = playersData[id];
-        }
-      }
-    });
-
-    this.socket.on("newPlayer", (playerData: OtherPlayer) => {
-      console.log(`Novo player ${playerData.id} conectado.`, playerData);
+    // Quando um novo jogador entra na sala em que você já está
+    this.socket.on("playerJoined", (playerData: OtherPlayer) => {
+      console.log(`Novo player ${playerData.name} (${playerData.id}) entrou na sala.`, playerData);
       if (playerData.id !== this.socket.id) {
         this.otherPlayers[playerData.id] = playerData;
       }
     });
+    
+    // Quando você entra em uma sala que já tem jogadores
+    this.socket.on("joinedRoom", (data: { roomId: string, players: OtherPlayer[] }) => {
+        console.log("Recebendo lista de jogadores da sala:", data.players);
+        data.players.forEach(playerData => {
+            if (playerData.id !== this.socket.id) {
+                this.otherPlayers[playerData.id] = playerData;
+            }
+        });
+    });
 
-    this.socket.on("playerDisconnected", (id: string) => {
+    // Quando um jogador sai da sala
+    this.socket.on("playerLeft", (id: string) => {
       console.log(`Player ${id} desconectado.`);
       delete this.otherPlayers[id];
     });
 
+    // Quando recebe atualização de posição de outro jogador
     this.socket.on("playerUpdate", (playerData: OtherPlayer) => {
       if (playerData.id !== this.socket.id) {
-        this.otherPlayers[playerData.id] = playerData;
+        if (this.otherPlayers[playerData.id]) {
+            this.otherPlayers[playerData.id].x = playerData.x;
+            this.otherPlayers[playerData.id].y = playerData.y;
+        } else {
+            // Caso de segurança: se o jogador não existir, cria o registro
+            this.otherPlayers[playerData.id] = playerData;
+        }
       }
     });
   }
@@ -174,11 +187,18 @@ export class GameLoop {
       if (id === this.socket.id) continue;
 
       const otherPlayer = this.otherPlayers[id];
-      this.p.fill(0, 150, 255);
+      
+      // ✅ USA A COR E O NOME VINDOS DO SERVIDOR
+      this.p.fill(otherPlayer.color || '#00A3FF');
+      this.p.stroke(0);
+      this.p.strokeWeight(1);
       this.p.rect(otherPlayer.x - camX, otherPlayer.y, PlayerConfig.width, PlayerConfig.height);
+      
       this.p.fill(255);
+      this.p.noStroke();
       this.p.textSize(12);
-      this.p.text(`Player ${id.substring(0, 4)}`, otherPlayer.x - camX, otherPlayer.y - 10);
+      this.p.textAlign(this.p.CENTER);
+      this.p.text(otherPlayer.name, otherPlayer.x - camX + PlayerConfig.width / 2, otherPlayer.y - 10);
     }
   }
 
