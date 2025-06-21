@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import RegisterMenu from "./game/components/RegisterMenu";
 import MainMenu from "./game/components/MainMenu";
 import LevelSelector from "./game/components/LevelSelector";
-import GameCanva from "././GameCanva";
+import GameCanva from "./GameCanva";
 import VictoryModal from "./game/components/VictoryModal";
 
 type Screen = "register" | "main" | "select" | "game";
@@ -12,6 +12,14 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [currentLevel, setCurrentLevel] = useState<string | null>(null);
   const [showVictory, setShowVictory] = useState(false);
+  const [gameKey, setGameKey] = useState(0); // Força remount do GameCanvas
+
+  // Garantir que ao sair da fase o modal seja fechado
+  useEffect(() => {
+    if (screen !== "game" && showVictory) {
+      setShowVictory(false);
+    }
+  }, [screen, showVictory]);
 
   const handleRegister = (name: string) => {
     setPlayerName(name);
@@ -22,23 +30,17 @@ function App() {
     setScreen("select");
   };
 
-const handleSelectLevel = (level: string) => {
-  setCurrentLevel(level);
-  setScreen('game');
-  setShowVictory(false); // limpa o estado!
-};
-
-  const handleGameEnd = () => {
-    setShowVictory(true);
+  const handleSelectLevel = (level: string) => {
+    setCurrentLevel(level);
+    setGameKey((prev) => prev + 1); // Garante um novo canvas limpo
+    setScreen("game");
+    setShowVictory(false);
   };
 
-const handleReplay = () => {
-  setShowVictory(false);
-  setCurrentLevel(null); // força desmontar
-  setTimeout(() => {
-    setCurrentLevel(prev => prev); // força remontar mesmo nome
-  }, 0);
-};
+  const handleReplay = () => {
+    setShowVictory(false);
+    setGameKey((prev) => prev + 1); // Reinicia o GameCanvas
+  };
 
   const handleBackToMenu = () => {
     setShowVictory(false);
@@ -57,8 +59,6 @@ const handleReplay = () => {
     setShowVictory(true);
   };
 
-  
-
   return (
     <>
       {screen === "register" && <RegisterMenu onContinue={handleRegister} />}
@@ -68,18 +68,25 @@ const handleReplay = () => {
       )}
 
       {screen === "select" && (
-        <LevelSelector onSelect={handleSelectLevel} onBack={handleBackToMenu}/>
+        <LevelSelector
+          onSelect={handleSelectLevel}
+          onBack={handleBackToMenu}
+        />
       )}
 
       {screen === "game" && currentLevel && (
         <>
           <GameCanva
+            key={gameKey}
             levelName={currentLevel}
             onExit={handleExitGame}
             onVictory={handleVictory}
           />
           {showVictory && (
-            <VictoryModal onReplay={handleReplay} onBack={handleBackToMenu} />
+            <VictoryModal
+              onReplay={handleReplay}
+              onBack={handleBackToMenu}
+            />
           )}
         </>
       )}
