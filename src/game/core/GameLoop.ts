@@ -15,8 +15,9 @@ import { PlayerLifeSystem } from "../classes/Player/PlayerLifeSystem";
 import { PlayerState } from "../classes/Player/PlayerState";
 import { isRectColliding } from "../classes/Obstacles/ObstacleCollision";
 import { Socket } from "socket.io-client";
+import { CollectibleItem } from "../classes/Item/CollectibleItem"; // ✅ Importa a classe de item
+import { Obstacle } from "../classes/Obstacles/Obstacle"; // ✅ Importa a classe base de obstáculo
 
-// Exporta a interface para ser a fonte da verdade
 export interface PlayerData {
   id: string;
   x: number;
@@ -34,6 +35,7 @@ export class GameLoop {
   private camera: Camera;
   private renderSystem: RenderSystem;
   private obstacleManager: ObstacleManager;
+  private items: CollectibleItem[] = []; // ✅ Lista para guardar os itens do mapa
   private isPaused: boolean = false;
   private otherPlayers: { [id: string]: PlayerData } = {};
   private roomId: string | null;
@@ -44,7 +46,6 @@ export class GameLoop {
     this.socket = socket;
     this.roomId = roomId;
 
-    console.log("[GameLoop] Criado com a lista inicial de jogadores:", initialPlayers);
     const newOtherPlayers: { [id: string]: PlayerData } = {};
     initialPlayers.forEach(playerData => {
       if (playerData.id !== this.socket.id) {
@@ -63,25 +64,22 @@ export class GameLoop {
     this.renderSystem = new RenderSystem(p, this.camera, this.player);
 
     const mapLoader = new MapManager(levelId as LevelId);
-    const loadedObstacles = mapLoader.getParsedObstacles();
+    const loadedObjects = mapLoader.getParsedObstacles();
+    
+    // ✅ Separa os objetos carregados em obstáculos e itens
     this.obstacleManager = new ObstacleManager();
-    this.obstacleManager.loadObstacles(loadedObstacles);
-    
+    this.obstacleManager.loadObstacles(loadedObjects.filter(obj => obj instanceof Obstacle) as Obstacle[]);
+    this.items = loadedObjects.filter(obj => obj instanceof CollectibleItem) as CollectibleItem[];
+
     PlayerLifeSystem.setInitialPosition(this.player.x, this.player.y);
-    
     this.setupSocketListeners();
   }
 
-  // ✅ MÉTODO DE LISTENERS 100% ATUALIZADO E SEGURO
   private setupSocketListeners(): void {
-    // Primeiro, remove quaisquer listeners de uma instância anterior do GameLoop.
-    // Isto evita ouvintes duplicados e bugs de estado obsoleto.
     this.socket.off("updatePlayerList");
     this.socket.off("playerUpdate");
     
-    // Agora, adiciona os listeners corretos para esta nova instância do jogo.
     this.socket.on("updatePlayerList", (players: PlayerData[]) => {
-      console.log("[GameLoop] Lista de jogadores da sala atualizada:", players);
       const newOtherPlayers: { [id: string]: PlayerData } = {};
       players.forEach(playerData => {
         if (playerData.id !== this.socket.id) {
@@ -97,7 +95,6 @@ export class GameLoop {
           this.otherPlayers[playerData.id].x = playerData.x;
           this.otherPlayers[playerData.id].y = playerData.y;
         } else {
-          // Caso de segurança: se o jogador não existir na sua lista, adiciona-o.
           this.otherPlayers[playerData.id] = playerData;
         }
       }
@@ -137,6 +134,9 @@ export class GameLoop {
     this.camera.follow(this.player.x);
     this.world.update(this.player);
 
+    // ✅ Adiciona a lógica de coleta de itens
+    this.handleItemCollection();
+
     if (this.roomId) {
       this.socket.emit("playerUpdate", {
         roomId: this.roomId,
@@ -154,18 +154,39 @@ export class GameLoop {
     const playerRespawned = PlayerLifeSystem.handleDeath(this.player);
     if (playerRespawned) {
       this.obstacleManager.resetAllBlockStates();
+      // ✅ Também resetamos os itens quando o jogador morre
+      this.items.forEach(item => item.isCollected = false);
     }
   }
+
+  // ✅ NOVO MÉTODO para lidar com a coleta
+private handleItemCollection(): void {
+  // Impede coleta se jogador já tem um item
+  if (this.player.heldItem !== null) return;
+
+  for (const item of this.items) {
+    if (!item.isCollected && item.checkCollision(this.player)) {
+      console.log(`Jogador coletou um item: ${item.type}`);
+      this.player.heldItem = item.type;
+      item.isCollected = true;
+      break; // evita pegar mais de um no mesmo frame
+    }
+  }
+}
 
   render(): void {
     this.renderSystem.render();
     this.world.render(this.renderSystem.p, this.camera.getOffset());
     this.obstacleManager.render(this.renderSystem.p, this.camera.getOffset());
 
+    // ✅ Renderiza os itens coletáveis
+    this.items.forEach(item => {
+      item.render(this.renderSystem.p, this.camera.getOffset());
+    });
+    
     const camX = this.camera.getOffset();
     for (const id in this.otherPlayers) {
       if (id === this.socket.id) continue;
-
       const otherPlayer = this.otherPlayers[id];
       
       this.p.fill(otherPlayer.color || '#00A3FF');

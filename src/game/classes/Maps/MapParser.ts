@@ -1,13 +1,15 @@
 import { Obstacle } from "../Obstacles/Obstacle";
 import { ObstacleBlock } from "../Obstacles/ObstacleBlock";
 import { ObstacleRamp } from "../Obstacles/ObstacleRamp";
-import { ObstacleKill } from "../Obstacles/ObstacleKill"; // ✅ bloco letal
-import { ObstacleFakeBlock } from "../Obstacles/ObstacleFakeBlock"; // ✅ 1. IMPORTA A NOVA CLASSE
+import { ObstacleKill } from "../Obstacles/ObstacleKill";
+import { ObstacleFakeBlock } from "../Obstacles/ObstacleFakeBlock";
+import { CollectibleItem } from "../Item/CollectibleItem"; // ✅ Importa a nova classe de item
 
 const TILE_SIZE = 40;
 
-export function parseTextMap(map: string[]): Obstacle[] {
-  const obstacles: Obstacle[] = [];
+// ✅ A função agora pode retornar uma mistura de Obstáculos e Itens
+export function parseTextMap(map: string[]): (Obstacle | CollectibleItem)[] {
+  const objects: (Obstacle | CollectibleItem)[] = []; 
 
   for (let row = 0; row < map.length; row++) {
     for (let col = 0; col < map[row].length; col++) {
@@ -17,22 +19,30 @@ export function parseTextMap(map: string[]): Obstacle[] {
 
       switch (char) {
         case 'b':
-          obstacles.push(new ObstacleBlock(x, y, TILE_SIZE, TILE_SIZE));
+          objects.push(new ObstacleBlock(x, y, TILE_SIZE, TILE_SIZE));
           break;
         case 'r':
-          obstacles.push(new ObstacleRamp(x, y, TILE_SIZE, TILE_SIZE));
+          objects.push(new ObstacleRamp(x, y, TILE_SIZE, TILE_SIZE));
           break;
         case 'k':
-          obstacles.push(new ObstacleKill(x, y, TILE_SIZE, TILE_SIZE));
+          objects.push(new ObstacleKill(x, y, TILE_SIZE, TILE_SIZE));
           break;
         case 'f':
-          obstacles.push(new ObstacleFakeBlock(x, y, TILE_SIZE, TILE_SIZE));
+          objects.push(new ObstacleFakeBlock(x, y, TILE_SIZE, TILE_SIZE));
           break;
+        // ✅ Adiciona os novos cases para os itens
+        case '$': // Foguete
+          objects.push(new CollectibleItem(x, y, 'rocket_item'));
+          break;
+        case '*': // Elixir
+          objects.push(new CollectibleItem(x, y, 'elixir_item'));
+          break;
+
         default:
           break;
       }
     }
   }
 
-  return obstacles;
+  return objects;
 }

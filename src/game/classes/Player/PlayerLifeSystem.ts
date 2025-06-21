@@ -1,32 +1,23 @@
-// src/game/classes/Player/PlayerLifeSystem.ts
-
 import { Player } from "./Player";
 import { PlayerState } from "./PlayerState";
-import { PlayerConfig } from "./PlayerConfig";
 
 export class PlayerLifeSystem {
   static initialX = 0;
   static initialY = 0;
 
-  // ✅ 1. A assinatura da função agora indica que ela retorna um booleano.
   static handleDeath(player: Player): boolean {
     if (player.physics.state === PlayerState.Death) {
-      // Reinicia posição
       player.x = PlayerLifeSystem.initialX;
       player.y = PlayerLifeSystem.initialY;
-
-      // Reinicia velocidades
       player.physics.vx = 0;
       player.physics.vy = 0;
-
-      // Reinicia estado
       player.physics.state = PlayerState.Idle;
       
-      // ✅ 2. Retorna 'true' para avisar que o jogador respawnou.
+      // ✅ Reseta também o item que o jogador estava a segurar
+      player.heldItem = null;
+
       return true;
     }
-
-    // ✅ 3. Se o jogador não morreu, retorna 'false'.
     return false;
   }
 
