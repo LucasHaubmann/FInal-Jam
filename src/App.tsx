@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
-import RegisterMenu from "./game/components/RegisterMenu";
+import { useState, useRef, useEffect } from "react";
+import { io, Socket } from "socket.io-client";
+
+// Importe seus componentes
 import MainMenu from "./game/components/MainMenu";
 import LevelSelector from "./game/components/LevelSelector";
 import GameCanva from "./GameCanva";
 import VictoryModal from "./game/components/VictoryModal";
+import RegisterMenu from "./game/components/RegisterMenu";
+import { setPaused } from "./game/core/sketch";
 
 type Screen = "register" | "main" | "select" | "game";
 
@@ -12,14 +16,15 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [currentLevel, setCurrentLevel] = useState<string | null>(null);
   const [showVictory, setShowVictory] = useState(false);
-  const [gameKey, setGameKey] = useState(0); // Força remount do GameCanvas
+  const [gameKey, setGameKey] = useState(0);
 
-  // Garantir que ao sair da fase o modal seja fechado
+  const socketRef = useRef<Socket | null>(null);
+
   useEffect(() => {
-    if (screen !== "game" && showVictory) {
-      setShowVictory(false);
-    }
-  }, [screen, showVictory]);
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, []);
 
   const handleRegister = (name: string) => {
     setPlayerName(name);
@@ -31,61 +36,67 @@ function App() {
   };
 
   const handleSelectLevel = (level: string) => {
-    setCurrentLevel(level);
-    setGameKey((prev) => prev + 1); // Garante um novo canvas limpo
-    setScreen("game");
+    if (!socketRef.current || !socketRef.current.connected) {
+      socketRef.current?.disconnect();
+      socketRef.current = io("http://localhost:3000", {
+        transports: ["websocket"],
+        forceNew: true,
+      });
+    }
+    
+    setPaused(false);
     setShowVictory(false);
+    setCurrentLevel(level);
+    setGameKey((prev) => prev + 1);
+    setScreen("game");
+  };
+  
+  const handleVictory = () => {
+    if (!showVictory) {
+      setPaused(true);
+      setShowVictory(true);
+    }
   };
 
   const handleReplay = () => {
     setShowVictory(false);
-    setGameKey((prev) => prev + 1); // Reinicia o GameCanvas
+    setPaused(false);
+    setGameKey((prev) => prev + 1);
   };
 
   const handleBackToMenu = () => {
+    if (socketRef.current?.connected) {
+      socketRef.current.disconnect();
+    }
     setShowVictory(false);
+    setPaused(false);
     setCurrentLevel(null);
     setScreen("main");
-  };
-
-  const handleExitGame = () => {
-    setShowVictory(false);
-    setCurrentLevel(null);
-    setScreen("main");
-  };
-
-  const handleVictory = () => {
-    console.log("VITÓRIA!");
-    setShowVictory(true);
   };
 
   return (
     <>
       {screen === "register" && <RegisterMenu onContinue={handleRegister} />}
-
-      {screen === "main" && (
-        <MainMenu playerName={playerName} onStartGame={handleStartGame} />
-      )}
-
+      
+      {screen === "main" && <MainMenu playerName={playerName} onStartGame={handleStartGame} />}
+      
       {screen === "select" && (
-        <LevelSelector
-          onSelect={handleSelectLevel}
-          onBack={handleBackToMenu}
-        />
+        <LevelSelector onSelect={handleSelectLevel} onBack={() => setScreen("main")} />
       )}
-
-      {screen === "game" && currentLevel && (
+      
+      {screen === "game" && currentLevel && socketRef.current && (
         <>
           <GameCanva
             key={gameKey}
             levelName={currentLevel}
-            onExit={handleExitGame}
+            onExit={handleBackToMenu}
             onVictory={handleVictory}
+            socket={socketRef.current}
           />
           {showVictory && (
             <VictoryModal
               onReplay={handleReplay}
-              onBack={handleBackToMenu}
+              onBackToMenu={handleBackToMenu} // Agora o nome da prop está correto
             />
           )}
         </>

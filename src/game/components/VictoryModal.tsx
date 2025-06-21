@@ -2,10 +2,10 @@ import React from "react";
 
 type VictoryModalProps = {
   onReplay: () => void;
-  onBack: () => void;
+  onBackToMenu: () => void; // AQUI: Alterado de onBack para onBackToMenu
 };
 
-const VictoryModal: React.FC<VictoryModalProps> = ({ onReplay, onBack}) => {
+const VictoryModal: React.FC<VictoryModalProps> = ({ onReplay, onBackToMenu }) => {
   return (
     <div
       style={{
@@ -19,8 +19,9 @@ const VictoryModal: React.FC<VictoryModalProps> = ({ onReplay, onBack}) => {
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        zIndex: 1000,
+        zIndex: 999,
         color: "white",
+        pointerEvents: "auto",
       }}
     >
       <div
@@ -48,7 +49,7 @@ const VictoryModal: React.FC<VictoryModalProps> = ({ onReplay, onBack}) => {
             Jogar novamente
           </button>
           <button
-            onClick={onBack}
+            onClick={onBackToMenu} // AQUI: Alterado de onBack para onBackToMenu
             style={{
               padding: "10px 20px",
               fontSize: "16px",
