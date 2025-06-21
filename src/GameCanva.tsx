@@ -1,6 +1,8 @@
+// src/GameCanva.tsx
 import React, { useRef, useEffect } from "react";
 import p5 from "p5";
 import { sketch } from "./game/core/sketch";
+import { io, Socket } from "socket.io-client"; // Importar io e Socket
 
 type GameCanvasProps = {
   levelName: string;
@@ -10,15 +12,32 @@ type GameCanvasProps = {
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, onExit, onVictory }) => {
   const sketchRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null); // Referência para o socket
 
-useEffect(() => {
-const wrappedSketch = (p: p5) => sketch(p, onVictory);
-const p5Instance = new p5(wrappedSketch, sketchRef.current!);
+  useEffect(() => {
+    // Inicializa a conexão Socket.IO
+    // Ajuste a URL para o endereço do seu servidor Node.js/Express
+    socketRef.current = io("http://localhost:3000"); //
 
-  return () => {
-    p5Instance.remove();
-  };
-}, [levelName, onVictory]);
+    socketRef.current.on("connect", () => { //
+      console.log("Conectado ao servidor Socket.IO!"); //
+    });
+
+    socketRef.current.on("disconnect", () => { //
+      console.log("Desconectado do servidor Socket.IO!"); //
+    });
+
+    // Passa o socket para o sketch P5.js
+    const wrappedSketch = (p: p5) => sketch(p, onVictory, socketRef.current!);
+    const p5Instance = new p5(wrappedSketch, sketchRef.current!);
+
+    return () => {
+      p5Instance.remove();
+      if (socketRef.current) {
+        socketRef.current.disconnect(); // Desconecta o socket ao desmontar o componente
+      }
+    };
+  }, [levelName, onVictory]);
 
   return (
     <div
