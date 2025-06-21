@@ -1,4 +1,3 @@
-// server/index.js
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
@@ -9,51 +8,90 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Ou coloque a URL exata do seu frontend, ex: "http://localhost:5173"
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
 const players = {};
+const rooms = {}; // ✅ Objeto para guardar o estado de todas as salas
+
+// Função para gerar um ID de sala aleatório e único
+const generateRoomId = () => {
+  let roomId;
+  do {
+    roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+  } while (rooms[roomId]); // Garante que o ID não exista
+  return roomId;
+};
 
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
-
-  // 🔴 NOVO: Inicializa a posição do novo jogador no servidor
-  // É crucial que a posição inicial no servidor seja a mesma que a posição inicial do player no cliente.
-  // No seu GameLoop.ts, o player começa em (0, 500).
-  players[socket.id] = {
-    x: 0,
-    y: 500,
-    id: socket.id,
-    // Você pode adicionar outras propriedades iniciais aqui, como playerName, cor, etc.
-    // playerName: "Jogador " + socket.id.substring(0, 4),
-    // color: "#00FF00" // Exemplo de cor
-  };
-
-  // 🟢 ALTERADO: Envia a lista de TODOS os jogadores existentes para o jogador que acabou de se conectar
-  socket.emit("currentPlayers", players); // Envia o objeto 'players' completo
-
-  // 🟢 ALTERADO: Avisa a TODOS os outros jogadores que um novo jogador conectou,
-  // enviando os dados completos desse novo jogador
-  socket.broadcast.emit("newPlayer", players[socket.id]); // Alterado de playerConnected para newPlayer e enviando o objeto
-
-  socket.on("playerUpdate", (playerData) => {
-    // Atualiza a posição do jogador que enviou a atualização
-    if (players[socket.id]) {
-      players[socket.id].x = playerData.x;
-      players[socket.id].y = playerData.y;
-      // Certifique-se de atualizar outras propriedades se estiverem sendo sincronizadas
-      // players[socket.id].state = playerData.state;
+  
+  // Lógica para CRIAR uma sala
+  socket.on('createRoom', () => {
+    const roomId = generateRoomId();
+    socket.join(roomId);
+    rooms[roomId] = {
+      players: [socket.id], // Adiciona o criador da sala
+      // podemos adicionar o estado do jogo aqui depois, ex: "waiting", "playing"
+    };
+    // Avisa ao criador da sala qual é o ID
+    socket.emit('roomCreated', roomId);
+    console.log(`Room ${roomId} created by ${socket.id}`);
+  });
+  
+  // Lógica para ENTRAR em uma sala
+  socket.on('joinRoom', (roomId) => {
+    const room = rooms[roomId];
+    if (room) {
+      if (room.players.length < 4) { // ✅ Checa o limite de jogadores
+        socket.join(roomId);
+        room.players.push(socket.id);
+        // Avisa ao jogador que ele entrou com sucesso
+        socket.emit('joinedRoom', roomId);
+        // Avisa a TODOS os outros na sala que um novo jogador entrou
+        socket.to(roomId).emit('playerJoined', socket.id);
+        console.log(`${socket.id} joined room ${roomId}. Players: ${room.players.length}`);
+      } else {
+        socket.emit('roomFull', roomId); // Avisa que a sala está cheia
+      }
+    } else {
+      socket.emit('roomNotFound', roomId); // Avisa que a sala não existe
     }
-    // Emite a atualização para todos os outros clientes, exceto o remetente
-    socket.broadcast.emit("playerUpdate", players[socket.id]); // Garante que envia o estado mais recente do servidor
+  });
+
+  // A lógica de `playerUpdate` precisa ser específica da sala agora
+  socket.on("playerUpdate", (data) => {
+    // Encontra a sala do jogador e envia a atualização SÓ para essa sala
+    const { roomId, ...playerData } = data;
+    if (roomId && rooms[roomId]) {
+      socket.to(roomId).emit("playerUpdate", playerData);
+    }
   });
 
   socket.on("disconnect", () => {
     console.log(`User Disconnected: ${socket.id}`);
-    delete players[socket.id];
-    socket.broadcast.emit("playerDisconnected", socket.id);
+    delete players[socket.id]; // Mantém sua lógica antiga se precisar
+    
+    // ✅ Remove o jogador de qualquer sala em que ele esteja
+    for (const roomId in rooms) {
+      const room = rooms[roomId];
+      const playerIndex = room.players.indexOf(socket.id);
+      if (playerIndex !== -1) {
+        room.players.splice(playerIndex, 1);
+        console.log(`${socket.id} left room ${roomId}. Players: ${room.players.length}`);
+        // Se a sala ficar vazia, podemos excluí-la
+        if (room.players.length === 0) {
+          delete rooms[roomId];
+          console.log(`Room ${roomId} is empty and has been closed.`);
+        } else {
+          // Avisa os outros jogadores que alguém saiu
+          socket.to(roomId).emit("playerLeft", socket.id);
+        }
+        break; // Sai do loop pois o jogador só pode estar em uma sala
+      }
+    }
   });
 });
 

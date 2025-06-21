@@ -2,9 +2,9 @@ import React from "react";
 
 const LevelSelector: React.FC<{ onSelect: (levelId: string) => void; onBack: () => void; }> = ({ onSelect, onBack }) => {
   const levels = [
-    { id: "level1", name: "Data Stream Alpha" },
-    { id: "level2", name: "Sector 7G Intrusion" },
-    { id: "level3", name: "Mainframe Core" },
+    { id: "level1", name: "Fase 1" },
+    { id: "level2", name: "Fase 2" },
+    { id: "level3", name: "Fase 3" },
   ];
   
   const styles: { [key: string]: React.CSSProperties } = {

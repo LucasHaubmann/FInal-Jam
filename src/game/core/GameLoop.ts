@@ -5,9 +5,8 @@ import { Camera } from "./Camera";
 import { RenderSystem } from "./RenderSystem";
 import { ObstacleManager } from "../classes/Obstacles/ObstacleManager";
 import { ObstacleFakeBlock } from "../classes/Obstacles/ObstacleFakeBlock";
-import { MapManager } from "../classes/Maps/MapManager"; // ✅ IMPORTAMOS O MAPMANAGER
+import { MapManager } from "../classes/Maps/MapManager";
 import type { LevelId } from "../classes/Maps/MapOrganizer";
-
 import { PlayerConfig } from "../classes/Player/PlayerConfig";
 import p5 from "p5";
 import { resolvePlayerPlatformCollision } from "./CollisionSystem";
@@ -36,12 +35,14 @@ export class GameLoop {
   private obstacleManager: ObstacleManager;
   private isPaused: boolean = false;
   private otherPlayers: { [id: string]: OtherPlayer } = {};
+  private roomId: string | null; // ✅ Propriedade para o multiplayer
 
-  // ✅ O CONSTRUTOR AGORA RECEBE O LEVELID
-  constructor(p: p5, onVictory: () => void, socket: Socket, levelId: string) {
+  // ✅ Construtor atualizado para receber levelId e roomId
+  constructor(p: p5, onVictory: () => void, socket: Socket, levelId: string, roomId: string | null) {
     this.p = p;
     this.onVictory = onVictory;
     this.socket = socket;
+    this.roomId = roomId; // Guarda o ID da sala
 
     this.player = new Player(0, 650);
 
@@ -53,25 +54,16 @@ export class GameLoop {
     this.camera = new Camera(1280, this.world.maxX);
     this.renderSystem = new RenderSystem(p, this.camera, this.player);
 
-    // ✅ LÓGICA DE CARREGAMENTO DE MAPA CORRETA
-    // 1. Cria o MapManager para carregar o mapa do ID recebido
+    // Lógica de carregamento de mapa que montamos
     const mapLoader = new MapManager(levelId as LevelId);
-    // 2. Pede a ele a lista de obstáculos prontos
     const loadedObstacles = mapLoader.getParsedObstacles();
-    // 3. Cria o ObstacleManager que vai gerenciar o jogo
     this.obstacleManager = new ObstacleManager();
-    // 4. Entrega os obstáculos do mapa correto para ele
     this.obstacleManager.loadObstacles(loadedObstacles);
     
     PlayerLifeSystem.setInitialPosition(this.player.x, this.player.y);
 
     this.setupSocketListeners();
   }
-
-  //
-  // NENHUMA OUTRA MUDANÇA É NECESSÁRIA NO RESTO DO ARQUIVO!
-  // Todos os métodos abaixo permanecem intactos.
-  //
 
   private setupSocketListeners(): void {
     this.socket.on("currentPlayers", (playersData: { [id: string]: OtherPlayer }) => {
@@ -110,72 +102,67 @@ export class GameLoop {
     this.isPaused = false;
   }
 
-// DENTRO DA CLASSE GameLoop
+  update(): void {
+    if (this.isPaused) return;
 
-// DENTRO DA CLASSE GameLoop
+    this.player.update(this.obstacleManager.obstacles);
 
-update(): void {
-  if (this.isPaused) return;
+    const prevX = this.player.x;
+    const speed = PlayerConfig.speedX;
+    this.player.x += speed;
+    this.player.physics.vx = this.player.x - prevX;
 
-  // ... toda a sua lógica de update (movimento, colisão, etc.) continua aqui ...
-  // ...
-  this.player.update(this.obstacleManager.obstacles);
+    resolvePlayerPlatformCollision(this.player, this.obstacleManager.obstacles);
 
-  const prevX = this.player.x;
-  const speed = PlayerConfig.speedX;
-  this.player.x += speed;
-  this.player.physics.vx = this.player.x - prevX;
+    ObstacleCollision.resolvePlayerBlockCollisions(
+      this.player,
+      this.obstacleManager.obstacles.filter(obs => obs instanceof ObstacleBlock) as ObstacleBlock[]
+    );
 
-  resolvePlayerPlatformCollision(this.player, this.obstacleManager.obstacles);
+    for (const obs of this.obstacleManager.obstacles) {
+      if (
+        obs.isLethal?.() &&
+        isRectColliding(
+          this.player.x, this.player.y,
+          PlayerConfig.width, PlayerConfig.height,
+          obs.x, obs.y,
+          obs.width, obs.height
+        )
+      ) {
+        this.player.physics.state = PlayerState.Death;
+      }
 
-  ObstacleCollision.resolvePlayerBlockCollisions(
-    this.player,
-    this.obstacleManager.obstacles.filter(obs => obs instanceof ObstacleBlock) as ObstacleBlock[]
-  );
-
-  for (const obs of this.obstacleManager.obstacles) {
-    if (
-      obs.isLethal?.() &&
-      isRectColliding(
-        this.player.x, this.player.y,
-        PlayerConfig.width, PlayerConfig.height,
-        obs.x, obs.y,
-        obs.width, obs.height
-      )
-    ) {
-      this.player.physics.state = PlayerState.Death;
-    }
-
-    if (obs instanceof ObstacleFakeBlock) {
-      if (obs.isColliding(this.player.x, this.player.y, PlayerConfig.width, PlayerConfig.height)) {
-        obs.trigger();
+      if (obs instanceof ObstacleFakeBlock) {
+        if (obs.isColliding(this.player.x, this.player.y, PlayerConfig.width, PlayerConfig.height)) {
+          obs.trigger();
+        }
       }
     }
+
+    this.camera.follow(this.player.x);
+    this.world.update(this.player);
+
+    // ✅ LÓGICA DE UPDATE PARA MULTIPLAYER
+    if (this.roomId) { // Só envia updates se estiver em modo multiplayer
+      this.socket.emit("playerUpdate", {
+        roomId: this.roomId,
+        id: this.socket.id,
+        x: this.player.x,
+        y: this.player.y,
+      });
+    }
+
+    if (this.player.x + PlayerConfig.width >= this.world.maxX) {
+      this.onVictory();
+      return;
+    }
+
+    // ✅ LÓGICA DE RESPAWN E RESET
+    const playerRespawned = PlayerLifeSystem.handleDeath(this.player);
+    if (playerRespawned) {
+      this.obstacleManager.resetAllBlockStates();
+    }
   }
-
-  this.camera.follow(this.player.x);
-  this.world.update(this.player);
-
-  this.socket.emit("playerUpdate", {
-    id: this.socket.id,
-    x: this.player.x,
-    y: this.player.y,
-  });
-
-  if (this.player.x + PlayerConfig.width >= this.world.maxX) {
-    this.onVictory();
-    return;
-  }
-
-  // ✅ LÓGICA DE RESPAWN E RESET
-  // 1. Chamamos a função e guardamos o "aviso" (true ou false)
-  const playerRespawned = PlayerLifeSystem.handleDeath(this.player);
-
-  // 2. Se o aviso for 'true', o GameLoop comanda o reset dos blocos.
-  if (playerRespawned) {
-    this.obstacleManager.resetAllBlockStates();
-  }
-}
 
   render(): void {
     this.renderSystem.render();

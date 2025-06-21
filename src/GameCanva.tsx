@@ -4,13 +4,14 @@ import { sketch } from "./game/core/sketch";
 import { Socket } from "socket.io-client";
 
 type GameCanvasProps = {
-  levelName: string; // <-- Precisa receber levelName
+  levelName: string;
+  roomId: string | null; // ✅ 1. Recebe a prop com o ID da sala
   onExit: () => void;
   onVictory: () => void;
   socket: Socket;
 };
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, onExit, onVictory, socket }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, roomId, onExit, onVictory, socket }) => {
   const sketchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -18,15 +19,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, onExit, onVictory, s
       sketchRef.current.innerHTML = "";
     }
 
-    // ✅ AQUI: Passamos o `levelName` para a função sketch
-    const wrappedSketch = (p: p5) => sketch(p, onVictory, socket, levelName);
+    // ✅ 2. Passa o `roomId` para a função sketch
+    const wrappedSketch = (p: p5) => sketch(p, onVictory, socket, levelName, roomId);
     const p5Instance = new p5(wrappedSketch, sketchRef.current!);
 
     return () => {
       p5Instance.remove();
     };
-    // Adicionamos levelName como dependência para garantir a recriação se ele mudar
-  }, [levelName]); 
+    // ✅ 3. Adiciona roomId como dependência para recriar se necessário
+  }, [levelName, roomId]); 
 
   return (
     <div
