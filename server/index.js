@@ -14,9 +14,7 @@ const io = new Server(server, {
 });
 
 const rooms = {};
-
-// ✅ Lista de cores para atribuir aos jogadores
-const playerColors = ['#00A3FF', '#FFA500', '#00C853', '#9400D3']; // Azul, Laranja, Verde, Roxo
+const playerColors = ['#00A3FF', '#FFA500', '#00C853', '#9400D3'];
 
 const generateRoomId = () => {
   let roomId;
@@ -29,9 +27,7 @@ const generateRoomId = () => {
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
   
-  // ✅ Ouve o evento onde o cliente envia seu nome
   socket.on('registerPlayer', (playerName) => {
-    // Guarda os dados customizados diretamente no objeto do socket
     socket.data.playerName = playerName;
     console.log(`Player ${socket.id} registered as: ${playerName}`);
   });
@@ -40,11 +36,11 @@ io.on("connection", (socket) => {
     const roomId = generateRoomId();
     socket.join(roomId);
 
-    // ✅ O primeiro jogador (host) pega a primeira cor
     socket.data.color = playerColors[0];
     
-    // ✅ A sala agora guarda objetos de jogador, não apenas IDs
     rooms[roomId] = {
+      hostId: socket.id,
+      mapId: 'level1',
       players: [{
         id: socket.id,
         name: socket.data.playerName || `Player 1`,
@@ -52,51 +48,64 @@ io.on("connection", (socket) => {
       }]
     };
     
-    // Avisa ao criador da sala o ID e a lista inicial de jogadores
     socket.emit('roomCreated', { roomId, players: rooms[roomId].players });
     console.log(`Room ${roomId} created by ${socket.id}`);
   });
   
   socket.on('joinRoom', (roomId) => {
     const room = rooms[roomId];
-    if (room) {
-      if (room.players.length < 4) {
-        socket.join(roomId);
-        
-        // ✅ Atribui a próxima cor disponível da lista
-        socket.data.color = playerColors[room.players.length % playerColors.length];
-        
-        const newPlayer = {
-          id: socket.id,
-          name: socket.data.playerName || `Player ${room.players.length + 1}`,
-          color: socket.data.color
-        };
+    if (room && room.players.length < 4) {
+      socket.join(roomId);
+      
+      socket.data.color = playerColors[room.players.length % playerColors.length];
+      
+      const newPlayer = {
+        id: socket.id,
+        name: socket.data.playerName || `Player ${room.players.length + 1}`,
+        color: socket.data.color
+      };
 
-        room.players.push(newPlayer);
-        
-        // Envia a lista completa de jogadores para quem acabou de entrar
-        socket.emit('joinedRoom', { roomId, players: room.players });
-        
-        // Envia os dados do NOVO jogador para os que JÁ ESTAVAM na sala
-        socket.to(roomId).emit('playerJoined', newPlayer);
-        console.log(`${socket.id} (${newPlayer.name}) joined room ${roomId}. Players: ${room.players.length}`);
-      } else {
-        socket.emit('roomFull', roomId);
+      room.players.push(newPlayer);
+      
+      socket.emit('joinedRoom', { roomId, players: room.players });
+      
+      // ✅ CORREÇÃO: Usa io.to() para enviar para TODOS na sala, incluindo o host.
+      io.to(roomId).emit('updatePlayerList', room.players);
+      console.log(`${socket.id} (${newPlayer.name}) joined room ${roomId}.`);
+
+      if (room.players.length === 4) {
+          console.log(`Room ${roomId} is full, starting game automatically.`);
+          io.to(roomId).emit('gameStarting', { mapId: room.mapId, players: room.players });
       }
+
+    } else if (room) {
+        socket.emit('roomFull', roomId);
     } else {
-      socket.emit('roomNotFound', roomId);
+        socket.emit('roomNotFound', roomId);
+    }
+  });
+
+  socket.on('mapSelected', ({ roomId, mapId }) => {
+    const room = rooms[roomId];
+    if (room && room.hostId === socket.id) {
+      room.mapId = mapId;
+      io.to(roomId).emit('mapChanged', mapId);
+      console.log(`Host of room ${roomId} changed map to ${mapId}`);
+    }
+  });
+
+  socket.on('startGame', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (room && room.hostId === socket.id) {
+      console.log(`Host starting game in room ${roomId} with map ${room.mapId}`);
+      io.to(roomId).emit('gameStarting', { mapId: room.mapId, players: room.players });
     }
   });
 
   socket.on("playerUpdate", (data) => {
     const { roomId, ...playerData } = data;
     if (roomId && rooms[roomId]) {
-      // ✅ Inclui os dados mais recentes de nome e cor no broadcast
-      const fullPlayerData = {
-        ...playerData,
-        name: socket.data.playerName,
-        color: socket.data.color,
-      };
+      const fullPlayerData = { ...playerData, name: socket.data.playerName, color: socket.data.color };
       socket.to(roomId).emit("playerUpdate", fullPlayerData);
     }
   });
@@ -106,18 +115,22 @@ io.on("connection", (socket) => {
     
     for (const roomId in rooms) {
       const room = rooms[roomId];
-      // ✅ Procura o jogador pelo ID no array de objetos
       const playerIndex = room.players.findIndex(p => p.id === socket.id);
       
       if (playerIndex !== -1) {
         room.players.splice(playerIndex, 1);
-        console.log(`${socket.id} left room ${roomId}. Players remaining: ${room.players.length}`);
+        console.log(`${socket.id} left room ${roomId}.`);
         
         if (room.players.length === 0) {
           delete rooms[roomId];
           console.log(`Room ${roomId} is empty and has been closed.`);
         } else {
-          socket.to(roomId).emit("playerLeft", socket.id);
+          if (room.hostId === socket.id && room.players.length > 0) {
+            room.hostId = room.players[0].id;
+            console.log(`New host for room ${roomId} is ${room.hostId}`);
+          }
+          // ✅ Notifica todos da nova lista de jogadores e do novo host.
+          io.to(roomId).emit("updatePlayerList", room.players);
         }
         break;
       }

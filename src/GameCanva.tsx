@@ -2,44 +2,45 @@ import React, { useRef, useEffect } from 'react';
 import p5 from 'p5';
 import { sketch } from './game/core/sketch';
 import { Socket } from 'socket.io-client';
+import type { PlayerData } from './game/core/GameLoop'; // ✅ Importa o tipo do GameLoop
 
 type GameCanvasProps = {
   levelName: string;
   roomId: string | null;
+  initialPlayers: PlayerData[]; // ✅ Usa o tipo importado
   onExit: () => void;
   onVictory: () => void;
   socket: Socket;
 };
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, roomId, onExit, onVictory, socket }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, roomId, initialPlayers, onExit, onVictory, socket }) => {
   const sketchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (sketchRef.current) {
       sketchRef.current.innerHTML = '';
     }
-    const wrappedSketch = (p: p5) => sketch(p, onVictory, socket, levelName, roomId);
+    const wrappedSketch = (p: p5) => sketch(p, onVictory, socket, levelName, roomId, initialPlayers);
     const p5Instance = new p5(wrappedSketch, sketchRef.current!);
+    
     return () => {
       p5Instance.remove();
     };
-  }, [levelName, roomId]);
+  }, [levelName, roomId]); // A lista inicial é passada apenas na criação do componente
 
-  // ✅ Estilo do container principal que vai segurar TUDO
   const mainContainerStyle: React.CSSProperties = {
-    position: 'relative', // Serve de âncora para os elementos internos
+    position: 'relative',
     width: '100vw',
     height: '100vh',
     overflow: 'hidden',
     backgroundColor: 'black',
   };
 
-  // ✅ Estilo do botão de sair, que será a nossa camada de UI
   const buttonStyle: React.CSSProperties = {
-    position: 'absolute', // Posicionado em relação ao mainContainer
+    position: 'absolute',
     top: '20px',
     left: '20px',
-    zIndex: 10, // Garante que ele fique por cima
+    zIndex: 10,
     fontFamily: "'Chakra Petch', sans-serif",
     fontSize: '1rem',
     padding: '10px 20px',
@@ -53,16 +54,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, roomId, onExit, onVi
   };
 
   return (
-    // ✅ Este é o container principal
     <div style={mainContainerStyle}>
-      {/* ✅ Camada 1: O container do jogo. 
-        O p5.js vai desenhar o canvas aqui dentro e não vai mais interferir com o botão.
-      */}
       <div id="sketch-container" ref={sketchRef} />
-
-      {/* ✅ Camada 2: A nossa UI (o botão).
-        Ele é irmão do container do sketch, não filho, evitando o conflito.
-      */}
       <button
         onClick={onExit}
         style={buttonStyle}
