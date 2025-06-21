@@ -1,14 +1,20 @@
 // obstacles/ObstacleManager.ts
 import p5 from "p5";
 import { Obstacle } from "./Obstacle";
-import { MapManager } from "../Maps/MapManager";
+// import { MapManager } from "../Maps/MapManager"; // ✅ REMOVIDO: Não precisa mais saber do MapManager
 
 export class ObstacleManager {
   obstacles: Obstacle[];
 
   constructor() {
-    const mapManager = new MapManager();
-    this.obstacles = mapManager.getObstacles();
+    // ✅ O construtor agora é simples: apenas inicializa uma lista vazia.
+    this.obstacles = [];
+  }
+  
+  // ✅ NOVO MÉTODO: Permite que o GameLoop "injete" os obstáculos do mapa correto.
+  public loadObstacles(obstaclesToLoad: Obstacle[]): void {
+    this.obstacles = obstaclesToLoad;
+    console.log(`[ObstacleManager] ${this.obstacles.length} obstáculos carregados e prontos para gerenciar.`);
   }
 
   update(): void {
