@@ -145,9 +145,9 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ isHost, roomId, players, onSt
         <div style={styles.hostControls}>
           <label htmlFor="map-select" style={styles.selectLabel}>SELECIONAR NÓ DE INTRUSÃO:</label>
           <select id="map-select" value={selectedMap} onChange={handleMapChange} style={styles.select}>
-            <option style={{backgroundColor: '#0a0a14'}} value="level1">Data Stream Alpha</option>
-            <option style={{backgroundColor: '#0a0a14'}} value="level2">Sector 7G Intrusion</option>
-            <option style={{backgroundColor: '#0a0a14'}} value="level3">Mainframe Core</option>
+            <option style={{backgroundColor: '#0a0a14'}} value="level1">Fase 1</option>
+            <option style={{backgroundColor: '#0a0a14'}} value="level2">Fase 2</option>
+            <option style={{backgroundColor: '#0a0a14'}} value="level3">Fase 3</option>
           </select>
           <button onClick={onStartGame} style={styles.startButton}>Iniciar Partida</button>
         </div>

@@ -26,7 +26,7 @@ function App() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    socketRef.current = io("http://localhost:3000", { transports: ["websocket"] });
+    socketRef.current = io("http://192.168.0.2:3000", { transports: ["websocket"] });
     const socket = socketRef.current;
     
     socket.on('roomCreated', (data: { roomId: string, players: PlayerData[] }) => {

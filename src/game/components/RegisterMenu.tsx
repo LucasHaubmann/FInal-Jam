@@ -59,7 +59,7 @@ const RegisterMenu: React.FC<{ onContinue: (name: string) => void }> = ({ onCont
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>SYSTEM LOGIN</h1>
+      <h1 style={styles.title}>GEOMETRIC BASH</h1>
       <p style={styles.subtitle}>USER AUTHENTICATION REQUIRED</p>
       <input
         type="text"
