@@ -57,7 +57,7 @@ Passo 2 — Instalar Dependências
 Frontend (React + p5.js)
 
 ```bash
-cd client
+cd src
 npm install
 ```
 
@@ -75,7 +75,7 @@ Passo 3 — Executar o Servidor
 No diretório `/server`, inicie o backend:
 
 ```bash
-npm start
+npx nodemon index.js
 ```
 
 Certifique-se de que o `server.listen(...)` esteja configurado com o endereço `0.0.0.0` para permitir conexões externas na LAN:
