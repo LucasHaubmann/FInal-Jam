@@ -14,7 +14,7 @@ export const map3 = [
   ".............rbbbbbk...bbbb...bfbbbk...........................rbbbbb........................................b..............b",
   "............rbbbbbb................b..........................rbbbbbb........................................b..............b",
   "...........rbbbbbbb................b.........................rbbbbbbb........................................b..............b",
-  "..........rbbbbbbbb.kkk....kkk..kkkb...........k...k...k....rbbbbbbbbkkkk.......kkkk.....kkk....kkk......kkkkb..............b",
+  "......$...rbbbbbbbb.kkk....kkk..kkkb........*..k...k...k....rbbbbbbbbkkkk.......kkkk.....kkk....kkk......kkkkb..............b",
   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 ];

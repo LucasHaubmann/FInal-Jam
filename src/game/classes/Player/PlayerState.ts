@@ -3,4 +3,5 @@ export enum PlayerState {
   Jumping = "Jumping",
   Falling = "Falling",
   Death = "Death",
+  Stunned = "Stunned", // ✅ NOVO ESTADO
 }

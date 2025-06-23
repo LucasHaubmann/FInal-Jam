@@ -46,7 +46,7 @@ io.on("connection", (socket) => {
         name: socket.data.playerName || `Player 1`,
         color: socket.data.color
       }],
-      finishers: [] // ✅ Adiciona lista de finalistas
+      finishers: []
     };
     
     socket.emit('roomCreated', { roomId, players: rooms[roomId].players });
@@ -75,7 +75,7 @@ io.on("connection", (socket) => {
 
       if (room.players.length === 4) {
           console.log(`Room ${roomId} is full, starting game automatically.`);
-          room.finishers = []; // Limpa a lista para a nova partida
+          room.finishers = [];
           io.to(roomId).emit('gameStarting', { mapId: room.mapId, players: room.players });
       }
 
@@ -91,24 +91,20 @@ io.on("connection", (socket) => {
     if (room && room.hostId === socket.id) {
       room.mapId = mapId;
       io.to(roomId).emit('mapChanged', mapId);
-      console.log(`Host of room ${roomId} changed map to ${mapId}`);
     }
   });
 
   socket.on('startGame', ({ roomId }) => {
     const room = rooms[roomId];
     if (room && room.hostId === socket.id) {
-      console.log(`Host starting game in room ${roomId} with map ${room.mapId}`);
-      room.finishers = []; // ✅ Limpa a lista de finalistas ao iniciar
+      room.finishers = [];
       io.to(roomId).emit('gameStarting', { mapId: room.mapId, players: room.players });
     }
   });
 
-  // ✅ NOVO EVENTO: Jogador finalizou a corrida
   socket.on('playerFinished', ({ roomId, time }) => {
     const room = rooms[roomId];
     if (room) {
-      // Evita que um jogador termine duas vezes
       const alreadyFinished = room.finishers.some(f => f.id === socket.id);
       if (!alreadyFinished) {
         const finisherData = {
@@ -117,7 +113,6 @@ io.on("connection", (socket) => {
           time: time,
         };
         room.finishers.push(finisherData);
-        // Envia a lista atualizada para todos na sala
         io.to(roomId).emit('updateResults', room.finishers);
       }
     }
@@ -131,6 +126,21 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ✅ NOVO: Evento para quando um foguete é disparado
+  socket.on('fireRocket', (data) => {
+    const { roomId, ownerId, projectileData } = data;
+    // Retransmite o evento para todos os outros na sala
+    socket.to(roomId).emit('newProjectile', { ownerId, projectileData });
+  });
+
+  // ✅ NOVO: Evento para quando um jogador é atingido
+  socket.on('playerHit', (data) => {
+    const { roomId, targetId, projectileId } = data;
+    // Retransmite para todos na sala para que possam remover o projétil e atordoar o jogador
+    io.to(roomId).emit('projectileImpact', { targetId, projectileId });
+  });
+
+
   socket.on("disconnect", () => {
     console.log(`User Disconnected: ${socket.id}`);
     
@@ -140,9 +150,7 @@ io.on("connection", (socket) => {
       
       if (playerIndex !== -1) {
         room.players.splice(playerIndex, 1);
-        console.log(`${socket.id} left room ${roomId}.`);
         
-        // Remove também da lista de finalistas, se estiver lá
         const finisherIndex = room.finishers.findIndex(f => f.id === socket.id);
         if (finisherIndex !== -1) {
             room.finishers.splice(finisherIndex, 1);
@@ -154,10 +162,9 @@ io.on("connection", (socket) => {
         } else {
           if (room.hostId === socket.id && room.players.length > 0) {
             room.hostId = room.players[0].id;
-            console.log(`New host for room ${roomId} is ${room.hostId}`);
           }
           io.to(roomId).emit("updatePlayerList", room.players);
-          io.to(roomId).emit('updateResults', room.finishers); // Atualiza os resultados
+          io.to(roomId).emit('updateResults', room.finishers);
         }
         break;
       }
