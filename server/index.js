@@ -45,7 +45,8 @@ io.on("connection", (socket) => {
         id: socket.id,
         name: socket.data.playerName || `Player 1`,
         color: socket.data.color
-      }]
+      }],
+      finishers: [] // ✅ Adiciona lista de finalistas
     };
     
     socket.emit('roomCreated', { roomId, players: rooms[roomId].players });
@@ -69,12 +70,12 @@ io.on("connection", (socket) => {
       
       socket.emit('joinedRoom', { roomId, players: room.players });
       
-      // ✅ CORREÇÃO: Usa io.to() para enviar para TODOS na sala, incluindo o host.
       io.to(roomId).emit('updatePlayerList', room.players);
       console.log(`${socket.id} (${newPlayer.name}) joined room ${roomId}.`);
 
       if (room.players.length === 4) {
           console.log(`Room ${roomId} is full, starting game automatically.`);
+          room.finishers = []; // Limpa a lista para a nova partida
           io.to(roomId).emit('gameStarting', { mapId: room.mapId, players: room.players });
       }
 
@@ -98,7 +99,27 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (room && room.hostId === socket.id) {
       console.log(`Host starting game in room ${roomId} with map ${room.mapId}`);
+      room.finishers = []; // ✅ Limpa a lista de finalistas ao iniciar
       io.to(roomId).emit('gameStarting', { mapId: room.mapId, players: room.players });
+    }
+  });
+
+  // ✅ NOVO EVENTO: Jogador finalizou a corrida
+  socket.on('playerFinished', ({ roomId, time }) => {
+    const room = rooms[roomId];
+    if (room) {
+      // Evita que um jogador termine duas vezes
+      const alreadyFinished = room.finishers.some(f => f.id === socket.id);
+      if (!alreadyFinished) {
+        const finisherData = {
+          id: socket.id,
+          name: socket.data.playerName,
+          time: time,
+        };
+        room.finishers.push(finisherData);
+        // Envia a lista atualizada para todos na sala
+        io.to(roomId).emit('updateResults', room.finishers);
+      }
     }
   });
 
@@ -121,6 +142,12 @@ io.on("connection", (socket) => {
         room.players.splice(playerIndex, 1);
         console.log(`${socket.id} left room ${roomId}.`);
         
+        // Remove também da lista de finalistas, se estiver lá
+        const finisherIndex = room.finishers.findIndex(f => f.id === socket.id);
+        if (finisherIndex !== -1) {
+            room.finishers.splice(finisherIndex, 1);
+        }
+
         if (room.players.length === 0) {
           delete rooms[roomId];
           console.log(`Room ${roomId} is empty and has been closed.`);
@@ -129,8 +156,8 @@ io.on("connection", (socket) => {
             room.hostId = room.players[0].id;
             console.log(`New host for room ${roomId} is ${room.hostId}`);
           }
-          // ✅ Notifica todos da nova lista de jogadores e do novo host.
           io.to(roomId).emit("updatePlayerList", room.players);
+          io.to(roomId).emit('updateResults', room.finishers); // Atualiza os resultados
         }
         break;
       }
@@ -138,6 +165,7 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3001, '0.0.0.0', () => {
-  console.log("Servidor rodando na porta 3001");
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });

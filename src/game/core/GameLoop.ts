@@ -15,8 +15,8 @@ import { PlayerLifeSystem } from "../classes/Player/PlayerLifeSystem";
 import { PlayerState } from "../classes/Player/PlayerState";
 import { isRectColliding } from "../classes/Obstacles/ObstacleCollision";
 import { Socket } from "socket.io-client";
-import { CollectibleItem } from "../classes/Item/CollectibleItem"; // ✅ Importa a classe de item
-import { Obstacle } from "../classes/Obstacles/Obstacle"; // ✅ Importa a classe base de obstáculo
+import { CollectibleItem } from "../classes/Item/CollectibleItem";
+import { Obstacle } from "../classes/Obstacles/Obstacle";
 
 export interface PlayerData {
   id: string;
@@ -26,21 +26,37 @@ export interface PlayerData {
   color: string;
 }
 
+// ✅ Função de formatação de tempo ATUALIZADA
+const formatTime = (millis: number): string => {
+  const totalSeconds = Math.floor(millis / 1000);
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  // Pega os milissegundos, divide por 10 para ter centésimos e formata com 2 dígitos
+  const centiseconds = Math.floor((millis % 1000) / 10).toString().padStart(2, '0');
+  return `${minutes}:${seconds}.${centiseconds}`;
+};
+
+
 export class GameLoop {
   private p: p5;
-  private onVictory: () => void;
+  private onVictory: (finalTime: string) => void;
   private socket: Socket;
   private player: Player;
   private world: World;
   private camera: Camera;
   private renderSystem: RenderSystem;
   private obstacleManager: ObstacleManager;
-  private items: CollectibleItem[] = []; // ✅ Lista para guardar os itens do mapa
+  private items: CollectibleItem[] = [];
   private isPaused: boolean = false;
   private otherPlayers: { [id: string]: PlayerData } = {};
   private roomId: string | null;
 
-  constructor(p: p5, onVictory: () => void, socket: Socket, levelId: string, roomId: string | null, initialPlayers: PlayerData[]) {
+  // Propriedades do temporizador
+  private startTime: number;
+  private elapsedTime: number = 0;
+  private hasFinished: boolean = false;
+
+  constructor(p: p5, onVictory: (finalTime: string) => void, socket: Socket, levelId: string, roomId: string | null, initialPlayers: PlayerData[]) {
     this.p = p;
     this.onVictory = onVictory;
     this.socket = socket;
@@ -66,13 +82,15 @@ export class GameLoop {
     const mapLoader = new MapManager(levelId as LevelId);
     const loadedObjects = mapLoader.getParsedObstacles();
     
-    // ✅ Separa os objetos carregados em obstáculos e itens
     this.obstacleManager = new ObstacleManager();
     this.obstacleManager.loadObstacles(loadedObjects.filter(obj => obj instanceof Obstacle) as Obstacle[]);
     this.items = loadedObjects.filter(obj => obj instanceof CollectibleItem) as CollectibleItem[];
 
     PlayerLifeSystem.setInitialPosition(this.player.x, this.player.y);
     this.setupSocketListeners();
+    
+    // Inicia o temporizador
+    this.startTime = p.millis();
   }
 
   private setupSocketListeners(): void {
@@ -105,7 +123,10 @@ export class GameLoop {
   resume(): void { this.isPaused = false; }
 
   update(): void {
-    if (this.isPaused) return;
+    if (this.isPaused || this.hasFinished) return;
+    
+    // Atualiza o tempo decorrido
+    this.elapsedTime = this.p.millis() - this.startTime;
 
     this.player.update(this.obstacleManager.obstacles);
 
@@ -134,7 +155,6 @@ export class GameLoop {
     this.camera.follow(this.player.x);
     this.world.update(this.player);
 
-    // ✅ Adiciona a lógica de coleta de itens
     this.handleItemCollection();
 
     if (this.roomId) {
@@ -146,40 +166,44 @@ export class GameLoop {
       });
     }
 
+    // Lógica de vitória
     if (this.player.x + PlayerConfig.width >= this.world.maxX) {
-      this.onVictory();
+      this.hasFinished = true; // Para o jogo para este jogador
+      const finalTime = formatTime(this.elapsedTime);
+
+      if (this.roomId) {
+        this.socket.emit('playerFinished', { roomId: this.roomId, time: finalTime });
+      }
+      this.onVictory(finalTime); // Envia o tempo para o App.tsx
       return;
     }
 
     const playerRespawned = PlayerLifeSystem.handleDeath(this.player);
     if (playerRespawned) {
       this.obstacleManager.resetAllBlockStates();
-      // ✅ Também resetamos os itens quando o jogador morre
       this.items.forEach(item => item.isCollected = false);
     }
   }
-
-  // ✅ NOVO MÉTODO para lidar com a coleta
-private handleItemCollection(): void {
-  // Impede coleta se jogador já tem um item
-  if (this.player.heldItem !== null) return;
-
-  for (const item of this.items) {
-    if (!item.isCollected && item.checkCollision(this.player)) {
-      console.log(`Jogador coletou um item: ${item.type}`);
-      this.player.heldItem = item.type;
-      item.isCollected = true;
-      break; // evita pegar mais de um no mesmo frame
+  
+  private handleItemCollection(): void {
+    // Impede coleta se jogador já tem um item
+    if (this.player.heldItem !== null) return;
+  
+    for (const item of this.items) {
+      if (!item.isCollected && item.checkCollision(this.player)) {
+        console.log(`Jogador coletou um item: ${item.type}`);
+        this.player.heldItem = item.type;
+        item.isCollected = true;
+        break; // evita pegar mais de um no mesmo frame
+      }
     }
   }
-}
 
   render(): void {
     this.renderSystem.render();
     this.world.render(this.renderSystem.p, this.camera.getOffset());
     this.obstacleManager.render(this.renderSystem.p, this.camera.getOffset());
 
-    // ✅ Renderiza os itens coletáveis
     this.items.forEach(item => {
       item.render(this.renderSystem.p, this.camera.getOffset());
     });
@@ -200,6 +224,21 @@ private handleItemCollection(): void {
       this.p.textAlign(this.p.CENTER);
       this.p.text(otherPlayer.name, otherPlayer.x - camX + PlayerConfig.width / 2, otherPlayer.y - 10);
     }
+
+    // Renderiza o temporizador na tela
+    this.renderTimer();
+  }
+
+  private renderTimer(): void {
+    const timeStr = formatTime(this.elapsedTime);
+    this.p.push();
+    this.p.fill('#00f6ff');
+    this.p.noStroke();
+    this.p.textFont('Orbitron');
+    this.p.textSize(32);
+    this.p.textAlign(this.p.CENTER, this.p.TOP);
+    this.p.text(timeStr, this.p.width / 2, 20);
+    this.p.pop();
   }
 
   handleKey(key: string): void {

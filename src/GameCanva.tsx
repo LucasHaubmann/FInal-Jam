@@ -2,14 +2,14 @@ import React, { useRef, useEffect } from 'react';
 import p5 from 'p5';
 import { sketch } from './game/core/sketch';
 import { Socket } from 'socket.io-client';
-import type { PlayerData } from './game/core/GameLoop'; // ✅ Importa o tipo do GameLoop
+import type { PlayerData } from './game/core/GameLoop'; 
 
 type GameCanvasProps = {
   levelName: string;
   roomId: string | null;
-  initialPlayers: PlayerData[]; // ✅ Usa o tipo importado
+  initialPlayers: PlayerData[]; 
   onExit: () => void;
-  onVictory: () => void;
+  onVictory: (finalTime: string) => void;
   socket: Socket;
 };
 
@@ -26,7 +26,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ levelName, roomId, initialPlaye
     return () => {
       p5Instance.remove();
     };
-  }, [levelName, roomId]); // A lista inicial é passada apenas na criação do componente
+  }, [levelName, roomId]); 
 
   const mainContainerStyle: React.CSSProperties = {
     position: 'relative',

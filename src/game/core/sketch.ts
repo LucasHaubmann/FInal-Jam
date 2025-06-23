@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { GameLoop } from "./GameLoop"; // ✅ Importa o tipo do GameLoop
+import { GameLoop } from "./GameLoop"; 
 import type { PlayerData } from "./GameLoop";
 import { Socket } from "socket.io-client";
 
@@ -9,8 +9,7 @@ export const setPaused = (value: boolean) => {
   paused = value;
 };
 
-// ✅ Usa o tipo importado na assinatura da função
-export const sketch = (p: p5, onVictory: () => void, socket: Socket, levelName: string, roomId: string | null, initialPlayers: PlayerData[]) => {
+export const sketch = (p: p5, onVictory: (finalTime: string) => void, socket: Socket, levelName: string, roomId: string | null, initialPlayers: PlayerData[]) => {
   let gameLoop: GameLoop | undefined;
 
   console.log("Sketch carregado!");
@@ -25,7 +24,6 @@ export const sketch = (p: p5, onVictory: () => void, socket: Socket, levelName: 
     canvas.style("transform", "translate(-50%, -50%)");
     p.background(20);
 
-    // ✅ Passa a lista inicial para o construtor do GameLoop
     gameLoop = new GameLoop(p, onVictory, socket, levelName, roomId, initialPlayers);
   };
 
